@@ -1,0 +1,522 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Pricing Grid Visualization</title>
+
+    <style>
+        body {
+            font: 12px sans-serif;
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            stroke-width: 2.5;
+            shape-rendering: crispEdges;
+        }
+    </style>
+
+    <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="jquery.csv-0.71.min.js"></script>
+    <script type="text/javascript" src="d3.min.js"></script>
+
+    <script>
+        // Declare global variables
+        var rawDataObject = {};
+        rawDataObject.userLog = "";
+        rawDataObject.userLogCount = 0;
+        rawDataObject.margin = {
+            top: 50,
+            right: 150,
+            bottom: 50,
+            left: 50
+        };
+        rawDataObject.width = 1280 - rawDataObject.margin.left - rawDataObject.margin.right;
+        rawDataObject.height = 800 - rawDataObject.margin.top - rawDataObject.margin.bottom;
+
+         // Sort number
+        function sortNumber(a, b) {
+            return a - b;
+        }
+
+         // OLS estimation
+        function olsEstimate(x, y) {
+            var sum_x = 0;
+            var sum_y = 0;
+            var sum_xy = 0;
+            var sum_x_sq = 0;
+            var n = x.length;
+            for (var i = 0; i < n; i++) {
+                sum_x += parseFloat(x[i]);
+                sum_y += parseFloat(y[i]);
+                sum_x_sq += parseFloat(x[i]) * parseFloat(x[i]);
+                sum_xy += parseFloat(x[i]) * parseFloat(y[i]);
+            }
+            var x_mean = sum_x / n;
+            var y_mean = sum_y / n;
+            var slope = (sum_xy - (sum_x * sum_y / n)) / (sum_x_sq - (sum_x * sum_x) / n);
+            var intercept = y_mean - slope * x_mean;
+            return [slope, intercept];
+        }
+
+         // Check availability of File API
+        $(document).ready(function () {
+            if (isAPIAvailable()) {
+                $("#files").bind("change", handleFileSelect);
+            }
+        });
+
+        function isAPIAvailable() {
+            if (window.File && window.FileReader && window.FileList && window.Blob) {
+                return true;
+            } else {
+                document.writeln("The HTML5 APIs used in this page are only available in the following browsers:<br/>");
+                document.writeln(" - Google Chrome: 13.0 or later<br/>");
+                document.writeln(" - Mozilla Firefox: 6.0 or later<br/>");
+                document.writeln(" - Internet Explorer: Not supported (partial support expected in 10.0)<br/>");
+                document.writeln(" - Safari: Not supported<br/>");
+                document.writeln(" - Opera: Not supported");
+                return false;
+            }
+        }
+
+         // File select handler
+        function handleFileSelect(evt) {
+            var files = evt.target.files;
+            var file = files[0];
+            var output = "Data Loaded!<br/>";
+            output += " - FileName: " + escape(file.name) + "<br/>";
+            output += " - FileType: " + (file.type || "n/a") + "<br/>";
+            output += " - FileSize: " + file.size + " bytes<br/>";
+            output += " - LastModified: " + (file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : "n/a") + "<br/>";
+            readData(file);
+
+            $("#upload_status").html(output);
+            d3.select("svg").remove();
+        }
+
+         // Read and parse data from csv
+        function readData(file) {
+            var reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = function (event) {
+                var csv = event.target.result;
+                rawDataObject.dataObject = $.csv.toObjects(csv);
+                defineX(Object.keys(rawDataObject.dataObject[0]));
+                defineY(Object.keys(rawDataObject.dataObject[0]));
+                createCheckBox(rawDataObject.dataObject);
+                $("#subset_data").show();
+            };
+            reader.onerror = function () {
+                alert("Unable to read " + file.fileName);
+            };
+        }
+
+         // Detect and add input variables to drop down menus
+         // Define x-axis variable
+        function defineX(dataHeader) {
+            $("#choose_x").empty();
+            $("#choose_x").append("<option value=''>choose variable x</option>");
+            var p = dataHeader.length;
+            for (var i = 0; i < p; i++) {
+                var varOption = document.createElement("option");
+                varOption.text = "x: " + dataHeader[i];
+                varOption.value = dataHeader[i];
+                document.getElementById("choose_x").options.add(varOption);
+            }
+            $("#choose_x").show();
+        }
+
+         // Define y-axis variable
+        function defineY(dataHeader) {
+            $("#choose_y").empty();
+            $("#choose_y").append("<option value=''>choose variable y</option>");
+            var p = dataHeader.length;
+            for (var i = 0; i < p; i++) {
+                var varOption = document.createElement("option");
+                varOption.text = "y: " + dataHeader[i];
+                varOption.value = dataHeader[i];
+                document.getElementById("choose_y").options.add(varOption);
+            }
+            $("#choose_y").show();
+        }
+
+         // Detect filters from data
+        function defineFilters(dataHeader) {
+            var p = dataHeader.length,
+                filters = [];
+            for (var i = 0; i < p; i++) {
+                if (dataHeader[i].toLowerCase().substring(0, 6) == "filter") {
+                    filters.push(dataHeader[i]);
+                }
+            }
+            return filters;
+        }
+
+         // Add filters and create check boxes for each
+        function createCheckBox(data) {
+            $("#filter_checkbox").empty();
+            var dataHeader = Object.keys(data[0]),
+                filterName = defineFilters(dataHeader);
+
+            for (var i = 0; i < filterName.length; i++) {
+                $("#filter_checkbox").append("<br/>");
+                $("#filter_checkbox").append("<div class=" + filterName[i].substr(9) + "><b>" + filterName[i] + "</b></div>");
+                // Extract unique data for each filter
+                var uniqueFilterData = [];
+                for (var j = 0; j < data.length; j++) {
+                    if ($.inArray(data[j][filterName[i]], uniqueFilterData) == -1) {
+                        uniqueFilterData.push(data[j][filterName[i]]);
+                    } else {
+                        continue;
+                    }
+                }
+
+                // Sort each filter options
+                if (isNaN(parseFloat(uniqueFilterData[0]))) {
+                    uniqueFilterData.sort();
+                } else {
+                    uniqueFilterData.sort(sortNumber);
+                }
+
+                // Create check boxes according to unique filter data
+                for (var k = 0; k < uniqueFilterData.length; k++) {
+                    var groupCheckBox = document.createElement("input"),
+                        checkBoxDesc = document.createTextNode(uniqueFilterData[k]),
+                        checkBoxLabel = document.createElement("label");
+                    groupCheckBox.type = "checkbox";
+                    groupCheckBox.className = "checkbox";
+                    groupCheckBox.id = filterName[i];
+                    groupCheckBox.value = uniqueFilterData[k]
+                    groupCheckBox.checked = false;
+                    checkBoxLabel.appendChild(groupCheckBox);
+                    checkBoxLabel.appendChild(checkBoxDesc);
+                    document.getElementById("filter_checkbox").appendChild(checkBoxLabel);
+                    document.getElementById("filter_checkbox").appendChild(document.createElement("br"));
+                }
+            }
+        }
+
+         // Shape data for visualization
+        function subsetData(input_data) {
+            // Detect the names of unchecked filters
+            var uncheckedFilterObject = {},
+                uncheckedFilterValue = [];
+            for (var i = 0; i < $(".checkbox").length; i++) {
+                if ($(".checkbox")[i].checked == false) {
+                    if (!($(".checkbox")[i].id in uncheckedFilterObject)) {
+                        uncheckedFilterObject[$(".checkbox")[i].id] = [];
+                        uncheckedFilterObject[$(".checkbox")[i].id].push($(".checkbox")[i].value);
+                    } else {
+                        uncheckedFilterObject[$(".checkbox")[i].id].push($(".checkbox")[i].value);
+                    }
+                }
+            }
+
+            // Remove unchecked variables from data
+            var data = input_data.slice(),
+                keyCount = 0;
+            for (var i = data.length - 1; i >= 0; i--) {
+                keyCount = 0;
+                for (var filterKey in uncheckedFilterObject) {
+                    if ($.inArray(data[i][filterKey], uncheckedFilterObject[filterKey]) > -1) {
+                        keyCount += 1;
+                    } else {
+                        continue;
+                    }
+                }
+                if (keyCount > 0) {
+                    data.splice(i, 1);
+                }
+            }
+            return data;
+        }
+
+
+         // Data Visualization Main Window
+        function scatterPlot(data) {
+            if (typeof (data) == "undefined") {
+                alert("Data not found!")
+            } else if (data.length) {
+
+            } else {
+                d3.select("svg").remove();
+                d3.select(".tooltip").remove();
+                $("#upload_status").html("");
+
+                var xName = $("#choose_x").val(),
+                    yName = $("#choose_y").val();
+
+                var rawData = rawDataObject.dataObject.slice(),
+                    data = subsetData(rawData);
+
+                var margin = rawDataObject.margin,
+                    width = rawDataObject.width,
+                    height = rawDataObject.height,
+                    xName = $("#choose_x").val(),
+                    yName = $("#choose_y").val(),
+                    zName = $("#choose_z").val();
+
+                // estimate initial slope and intercept for regression line
+                var x = [],
+                    y = [];
+                for (var i = 0; i < data.length; i++) {
+                    x.push(data[i][xName]);
+                    y.push(data[i][yName]);
+                }
+                var slope = olsEstimate(x, y)[0];
+                var intercept = olsEstimate(x, y)[1];
+                $("#line_slope").val(slope.toFixed(6));
+                $("#line_intercept").val(intercept.toFixed(2));
+                $('#line_slope').attr("placeholder", slope.toFixed(6));
+                $('#line_intercept').attr("placeholder", intercept.toFixed(2));
+
+                rawDataObject.currentSlope = parseFloat($("#line_slope").val());
+                rawDataObject.currentIntercept = parseFloat($("#line_intercept").val());
+                rawDataObject.xMin = parseFloat(data[0][xName]);
+                rawDataObject.xMax = rawDataObject.xMin;
+                rawDataObject.yMin = parseFloat(data[0][yName]);
+                rawDataObject.yMax = rawDataObject.yMin;
+
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i][xName] < rawDataObject.xMin) {
+                        rawDataObject.xMin = parseFloat(data[i][xName]);
+                    }
+                    if (data[i][yName] < rawDataObject.yMin) {
+                        rawDataObject.yMin = parseFloat(data[i][yName]);
+                    }
+                    if (data[i][xName] > rawDataObject.xMax) {
+                        rawDataObject.xMax = parseFloat(data[i][xName]);
+                    }
+                    if (data[i][yName] > rawDataObject.yMax) {
+                        rawDataObject.yMax = parseFloat(data[i][yName]);
+                    }
+                }
+                var yMin = rawDataObject.currentIntercept + rawDataObject.currentSlope * rawDataObject.xMin;
+                var yMax = rawDataObject.currentIntercept + rawDataObject.currentSlope * rawDataObject.xMax;
+
+
+                data.forEach(function (d) {
+                    d[xName] = +d[xName];
+                    d[yName] = +d[yName];
+                })
+
+                // set up x
+                var xValue = function (d) {
+                        return d[xName];
+                    },
+                    xScale = d3.scale.linear()
+                    .domain([d3.min(data, xValue) - d3.min(data, xValue) * 0.1, d3.max(data, xValue) + d3.max(data, xValue) * 0.1])
+                    .range([0, width]),
+                    xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+                // set up y
+                var yValue = function (d) {
+                        return d[yName];
+                    },
+                    yScale = d3.scale.linear()
+                    .domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.1])
+                    .range([height, 0]),
+                    yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+                // set up fill color
+                var zValue = function (d) {
+                        return d[zName];
+                    },
+                    zColor = d3.scale.category10();
+
+                // attach graph canvas to #scatter div
+                var svg = d3.select("#scatter").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                // tooltip initialization
+                var tooltip = d3.select("#scatter").append("div")
+                    .attr("class", "tooltip")
+                    .style("position", "absolute")
+                    .style("pointer-events", "none")
+                    .style("z-index", 10)
+                    .style("opacity", 0)
+                    .style("background-color", "#ffeda0");
+
+                // x-axis
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis)
+                    .append("text")
+                    .attr("class", "label")
+                    .attr("x", width + 25)
+                    .attr("y", 40)
+                    .style("text-anchor", "end")
+                    .style("font-weight", "bold")
+                    .text(xName);
+
+                // y-axis
+                svg.append("g")
+                    .attr("class", "axis")
+                    .call(yAxis)
+                    .append("text")
+                    .attr("class", "label")
+                    .attr("x", 25)
+                    .attr("y", -20)
+                    .style("text-anchor", "end")
+                    .style("font-weight", "bold")
+                    .text(yName);
+
+                // scatter plot
+                svg.selectAll("scatterplot")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "dot")
+                    .attr("r", 4.5)
+                    .attr("cx", function (d) {
+                        return xScale(xValue(d));
+                    })
+                    .attr("cy", function (d) {
+                        return yScale(yValue(d));
+                    })
+                    .style("fill", function (d) {
+                        return zColor(zValue(d));
+                    })
+                    .style("z-index", 8)
+                /*                    .on("click", function () {
+                        d3.selectAll(".dot")
+                            .attr("r", 4.5)
+                            .style("stroke-opacity", 0);
+                        d3.select(this)
+                            .attr("r", 60)
+                            .style("stroke", "black")
+                            .style("stroke-width", "2px")
+                            .style("stroke-opacity", 1)
+                            .style("z-index", 9)
+                            .transition()
+                            .duration(600)
+                            .attr("r", 8);
+                    })
+*/
+                .on("mouseover", function (d) {
+                    tooltip.transition().style("opacity", 0.9);
+                    var tooltipText = "";
+                    for (var i = 0; i < rawDataObject.dataArray[0].length; i++) {
+                        tooltipText += rawDataObject.dataArray[0][i] + ": " + d[rawDataObject.dataArray[0][i]] + "<br/>";
+                    }
+                    tooltip.html(tooltipText)
+                        .style("left", (d3.event.pageX + 20) + "px")
+                        .style("top", (d3.event.pageY - 40) + "px");
+                })
+                    .on("mouseout", function (d) {
+                        tooltip.transition().style("opacity", 0)
+                    })
+
+                // legend
+                var legend = svg.selectAll(".legend")
+                    .data(zColor.domain())
+                    .enter().append("g")
+                    .attr("class", "legend")
+                    .attr("transform", function (d, i) {
+                        return "translate(0," + i * 20 + ")";
+                    });
+                legend.append("rect")
+                    .attr("x", width - 10)
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .attr("fill", zColor)
+                legend.append("text")
+                    .attr("x", width + 10)
+                    .attr("y", 14)
+                    .style("text-anchor", "start")
+                    .text(function (d) {
+                        return d;
+                    })
+            }
+        }
+
+        function addLine(x1, y1, x2, y2) {
+            d3.select("g").append("svg:line")
+                .attr("class", "grid_line")
+                .attr("x1", x1)
+                .attr("y1", y1)
+                .attr("x2", x2)
+                .attr("y2", y2)
+                .style("stroke-width", 2)
+        }
+
+        function updateLine(x1, y1, x2, y2) {
+            d3.select("line.grid_line").transition()
+                .attr("x1", x1)
+                .attr("y1", y1)
+                .attr("x2", x2)
+                .attr("y2", y2)
+        }
+
+         // log user activity
+        function logOutput() {
+
+        }
+
+         // export output to text file
+        function exportToText() {
+            var textToExport = new Blob([rawDataObject.userLog], {
+                type: "text/html",
+                endings: "native"
+            });
+            var downloadLink = document.createElement("a");
+            downloadLink.download = "LoggedData.txt";
+            if (window.webkitURL != null) {
+                // Chrome allows the link to be clicked without actually adding it to the DOM.
+                downloadLink.href = window.webkitURL.createObjectURL(textToExport);
+            } else {
+                // Firefox requires the link to be added to the DOM before it can be clicked.
+                function destroyClickedElement(event) {
+                    document.body.removeChild(event.target);
+                }
+                downloadLink.href = window.URL.createObjectURL(textToExport);
+                downloadLink.onclick = destroyClickedElement;
+                downloadLink.style.display = "none";
+                document.body.appendChild(downloadLink);
+            }
+            downloadLink.click();
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Pricing Tool Visualization Prototype <sup><code>beta</code></sup></h1>
+    <h4><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top">Contact Author</a></h4>
+    <hr/>
+    <div id=user_inputs>
+        <h3>Data Input</h3>
+        <input id=files type=file name=files[]></input>
+        <br/>
+        <output id=upload_status></output>
+    </div>
+    <hr/>
+    <div id=control_panel style="width: 20%; float:left">
+        <h3>Control Panel</h3>
+        <button id=scatterplot_data onclick="scatterPlot(subsetData(rawDataObject))">Visualize Data</button>
+        <br/>
+        <button id=log_data onclick="logOutput()">Log Data</button>
+        <output id=log_status></output>
+        <br/>
+        <button id=export_data onclick="exportToText()">Export Data</button>
+        <br/>
+        <br/>
+        <button id=subset_data style="display:none" onclick="subsetData(rawDataObject.dataObject)">Apply Settings</button>
+        <br/>
+        <div id=choose_variables>
+            <select id=choose_x style="display:none"></select>
+            <select id=choose_y style="display:none"></select>
+        </div>
+        <div id=filter_checkbox></div>
+    </div>
+    <div id=data_visualization style="width: 80%; float:right">
+        <h3>Data Visualization</h3>
+    </div>
+</body>
+
+</html>
