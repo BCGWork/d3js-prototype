@@ -16,6 +16,31 @@
             stroke-width: 2.5;
             shape-rendering: crispEdges;
         }
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10;
+            background: #dddddd;
+			font: sans-serif;
+            font-weight: bold;
+            opacity: 0;
+            padding: 5px;
+            border: 2px solid #a1a1a1;
+            border-radius: 8px;
+        }
+		.click_tooltip {
+            position: absolute;
+            pointer-events: none;
+            z-index: 9;
+            background: #636363;
+			color: white;
+			font: sans-serif;
+            font-weight: bold;
+            opacity: 0;
+            padding: 5px;
+            border: 2px solid black;
+            border-radius: 8px;
+        }
     </style>
 
     <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
@@ -27,6 +52,7 @@
         var rawDataObject = {};
         rawDataObject.userLog = "";
         rawDataObject.userLogCount = 0;
+        rawDataObject.hideList = ["filter", "anchor"];
         rawDataObject.margin = {
             top: 50,
             right: 150,
@@ -106,9 +132,8 @@
                 rawDataObject.dataObject = $.csv.toObjects(csv);
                 defineX(Object.keys(rawDataObject.dataObject[0]));
                 defineY(Object.keys(rawDataObject.dataObject[0]));
-				defineTooltip(Object.keys(rawDataObject.dataObject[0]));
+                defineTooltip(Object.keys(rawDataObject.dataObject[0]));
                 createCheckBox(rawDataObject.dataObject);
-//                $("#subset_data").show();
             };
             reader.onerror = function () {
                 alert("Unable to read " + file.fileName);
@@ -122,10 +147,12 @@
             $("#choose_x").append("<option value=''>choose variable x</option>");
             var p = dataHeader.length;
             for (var i = 0; i < p; i++) {
-                var varOption = document.createElement("option");
-                varOption.text = "x: " + dataHeader[i];
-                varOption.value = dataHeader[i];
-                document.getElementById("choose_x").options.add(varOption);
+                if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
+                    var varOption = document.createElement("option");
+                    varOption.text = "x: " + dataHeader[i];
+                    varOption.value = dataHeader[i];
+                    document.getElementById("choose_x").options.add(varOption);
+                }
             }
             $("#choose_x").show();
         }
@@ -136,33 +163,37 @@
             $("#choose_y").append("<option value=''>choose variable y</option>");
             var p = dataHeader.length;
             for (var i = 0; i < p; i++) {
-                var varOption = document.createElement("option");
-                varOption.text = "y: " + dataHeader[i];
-                varOption.value = dataHeader[i];
-                document.getElementById("choose_y").options.add(varOption);
+                if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
+                    var varOption = document.createElement("option");
+                    varOption.text = "y: " + dataHeader[i];
+                    varOption.value = dataHeader[i];
+                    document.getElementById("choose_y").options.add(varOption);
+                }
             }
             $("#choose_y").show();
         }
-		
-		 // Define tooltip display variable
-		function defineTooltip(dataHeader) {
-			$("#tooltip_checkbox").append("<br/>");
-			$("#tooltip_checkbox").append("<div><b>Tooltip Settings</b></div>");
-			for (var i = 0; i < dataHeader.length; i++) {
-				var tooltipCheckBox = document.createElement("input"),
-					tooltipDesc = document.createTextNode(dataHeader[i]),
-					tooltipLabel = document.createElement("label");
-				tooltipCheckBox.type = "checkbox";
-				tooltipCheckBox.className = "tooltip_display";
-				tooltipCheckBox.id = dataHeader[i];
-				tooltipCheckBox.value = dataHeader[i];
-				tooltipCheckBox.checked = false;
-				tooltipLabel.appendChild(tooltipCheckBox);
-				tooltipLabel.appendChild(tooltipDesc);
-				document.getElementById("tooltip_checkbox").appendChild(tooltipLabel);
-				document.getElementById("tooltip_checkbox").appendChild(document.createElement("br"));
-			}
-		}
+
+         // Define tooltip display variable
+        function defineTooltip(dataHeader) {
+            $("#tooltip_checkbox").append("<br/>");
+            $("#tooltip_checkbox").append("<div><b>Tooltip Settings</b></div>");
+            for (var i = 0; i < dataHeader.length; i++) {
+                if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
+                    var tooltipCheckBox = document.createElement("input"),
+                        tooltipDesc = document.createTextNode(dataHeader[i]),
+                        tooltipLabel = document.createElement("label");
+                    tooltipCheckBox.type = "checkbox";
+                    tooltipCheckBox.className = "tooltip_display";
+                    tooltipCheckBox.id = dataHeader[i];
+                    tooltipCheckBox.value = dataHeader[i];
+                    tooltipCheckBox.checked = false;
+                    tooltipLabel.appendChild(tooltipCheckBox);
+                    tooltipLabel.appendChild(tooltipDesc);
+                    document.getElementById("tooltip_checkbox").appendChild(tooltipLabel);
+                    document.getElementById("tooltip_checkbox").appendChild(document.createElement("br"));
+                }
+            }
+        }
 
          // Detect filters from data
         function defineFilters(dataHeader) {
@@ -222,7 +253,7 @@
 
          // Subset data for visualization
         function subsetData(input_data) {
-			$("#upload_status").html("");
+            $("#upload_status").html("");
             // Detect the names of unchecked filters
             var uncheckedFilterObject = {},
                 uncheckedFilterValue = [];
@@ -253,158 +284,193 @@
                     data.splice(i, 1);
                 }
             }
-			
-			// Group filters and create new column as category
-			for (var i = 0; i < data.length; i++) {
-				data[i]["Category"] = "";
-				for (filterKey in data[i]) {
-					if (filterKey.toLowerCase().substring(0, 6) == "filter") {
-						data[i]["Category"] = data[i]["Category"] + data[i][filterKey] + "; ";
-					}
-				}
-			}
+
+            // Group filters and create new column as category
+            for (var i = 0; i < data.length; i++) {
+                data[i]["Category"] = "";
+                for (filterKey in data[i]) {
+                    if (filterKey.toLowerCase().substring(0, 6) == "filter") {
+                        data[i]["Category"] = data[i]["Category"] + data[i][filterKey] + "; ";
+                    }
+                }
+            }
             rawDataObject.plotData = data;
-			return data;
+            return data;
         }
 
          // Data visualization window
         function scatterPlot(data) {
-			// Canvas initialization
-			d3.select("svg").remove();
-			d3.select(".tooltip").remove();
-			$("#upload_status").html("");
+            // Setting variables for visualization
+            var xName = $("#choose_x").val(),
+                yName = $("#choose_y").val();
+            var margin = rawDataObject.margin,
+                width = rawDataObject.width,
+                height = rawDataObject.height,
+                zName = "Category";
 
-			// Setting variables for visualization
-			var xName = $("#choose_x").val(),
-				yName = $("#choose_y").val();
-			var margin = rawDataObject.margin,
-				width = rawDataObject.width,
-				height = rawDataObject.height,
-				zName = "Category";
+            data.forEach(function (d) {
+                d[xName] = +d[xName];
+                d[yName] = +d[yName];
+            })
+
+            // set up x
+            var xValue = function (d) {
+                    return (Math.log(d[xName]) / Math.LN10);
+                },
+                xScale = d3.scale.linear()
+                .domain([d3.min(data, xValue) - d3.min(data, xValue) * 0.05, d3.max(data, xValue) + d3.max(data, xValue) * 0.05])
+                .range([0, width]),
+                xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+            // set up y
+            var yValue = function (d) {
+                    return d[yName];
+                },
+                yScale = d3.scale.linear()
+                .domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.2])
+                .range([height, 0]),
+                yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+            // set up fill color
+            var zValue = function (d) {
+                    return d[zName];
+                },
+                zColor = d3.scale.category10();
+
+            // tooltip initialization
+            var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip");
+
+            // attach svg to canvas
+            var svg = d3.select("#data_visualization").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // x-axis
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis)
+                .append("text")
+                .attr("class", "label")
+                .attr("x", width + 25)
+                .attr("y", 40)
+                .style("text-anchor", "end")
+                .style("font-weight", "bold")
+                .text("log(" + xName + ")");
+
+            // y-axis
+            svg.append("g")
+                .attr("class", "axis")
+                .call(yAxis)
+                .append("text")
+                .attr("class", "label")
+                .attr("x", 25)
+                .attr("y", -20)
+                .style("text-anchor", "end")
+                .style("font-weight", "bold")
+                .text(yName);
 			
-			data.forEach(function (d) {
-				d[xName] = +d[xName];
-				d[yName] = +d[yName];
-			})
-			
-			// set up x
-			var xValue = function (d) {return Math.log(d[xName]);},
-				xScale = d3.scale.linear()
-						.domain([d3.min(data, xValue) - d3.min(data, xValue) * 0.05, d3.max(data, xValue) + d3.max(data, xValue) * 0.05])
-						.range([0, width]),
-				xAxis = d3.svg.axis().scale(xScale).orient("bottom");
-				
-			// set up y
-			var yValue = function (d) {return d[yName];},
-				yScale = d3.scale.linear()
-						.domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.2])
-						.range([height, 0]),
-				yAxis = d3.svg.axis().scale(yScale).orient("left");
-			
-			// set up fill color
-			var zValue = function (d) {return d[zName];},
-				zColor = d3.scale.category10();
-			
-			// attach svg to canvas
-			var svg = d3.select("#data_visualization").append("svg")
-						.attr("width", width + margin.left + margin.right)
-						.attr("height", height + margin.top + margin.bottom)
-						.append("g")
-						.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-			
-			// tooltip initialization
-			var tooltip = d3.select("#scatter").append("div")
-							.attr("class", "tooltip")
-							.style("position", "absolute")
-							.style("pointer-events", "none")
-							.style("z-index", 10)
-							.style("opacity", 0)
-							.style("background-color", "#ffeda0");
-			
-			// x-axis
-			svg.append("g")
-				.attr("class", "axis")
-				.attr("transform", "translate(0," + height + ")")
-				.call(xAxis)
-				.append("text")
-				.attr("class", "label")
-				.attr("x", width + 25)
-				.attr("y", 40)
-				.style("text-anchor", "end")
-				.style("font-weight", "bold")
-				.text("log(" + xName + ")");
-			
-			// y-axis
-			svg.append("g")
-				.attr("class", "axis")
-				.call(yAxis)
-				.append("text")
-				.attr("class", "label")
-				.attr("x", 25)
-				.attr("y", -20)
-				.style("text-anchor", "end")
-				.style("font-weight", "bold")
-				.text(yName);
-			
-			// scatter plot
-			svg.selectAll("scatterplot")
-				.data(data)
-				.enter().append("circle")
-				.attr("class", "dot")
-				.attr("r", 4.5)
-				.attr("cx", function (d) {return xScale(xValue(d));})
-				.attr("cy", function (d) {return yScale(yValue(d));})
-				.style("fill", function (d) {return zColor(zValue(d));})
-				.style("z-index", 8)
-				.on("click", function () {
-					d3.selectAll(".dot")
-						.attr("r", 4.5)
-						.style("stroke-opacity", 0);
-					d3.select(this)
-						.attr("r", 60)
-						.style("stroke", "black")
-						.style("stroke-width", "2px")
-						.style("stroke-opacity", 1)
-						.style("z-index", 9)
-						.transition()
-						.duration(600)
-						.attr("r", 8);
-				})
-				.on("mouseover", function (d) {
-					tooltip.transition().style("opacity", 0.9);
-					var tooltipDisplay = [];
-						tooltipText = "";
-					for (var i = 0; i < $(".tooltip_display").length; i++) {
-						if ($(".tooltip_display")[i].checked == true) {
-							tooltipDisplay.push($(".tooltip_display")[i].value);
+			// Append click tooltip
+			d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
+
+            // scatter plot
+            svg.selectAll("scatterplot")
+                .data(data)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .attr("r", 4.5)
+                .attr("cx", function (d) {
+                    return xScale(xValue(d));
+                })
+                .attr("cy", function (d) {
+                    return yScale(yValue(d));
+                })
+                .style("fill", function (d) {
+                    return zColor(zValue(d));
+                })
+                .style("z-index", 8)
+                .on("click", function (d) {
+					var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
+					var clickTooltip = d3.select("#div_click_tooltip")
+											.append("div")
+											.attr("id", pointID)
+											.attr("class", "click_tooltip");
+					if (d3.select(this).attr("r") < 8) {
+						d3.select(this)
+							.attr("r", 60)
+							.style("stroke", "black")
+							.style("stroke-width", "2px")
+							.style("stroke-opacity", 1)
+							.transition()
+							.duration(600)
+							.attr("r", 8);
+							
+						clickTooltip.transition().style("opacity", 0.62);
+						var clickTooltipDisplay = [],
+							clickTooltipText = "";
+						for (var i = 0; i < $(".tooltip_display").length; i++) {
+							if ($(".tooltip_display")[i].checked == true) {
+								clickTooltipDisplay.push($(".tooltip_display")[i].value);
+							}
 						}
+						for (var i = 0; i < clickTooltipDisplay.length; i++) {
+							clickTooltipText += clickTooltipDisplay[i] + ": " + d[clickTooltipDisplay[i]] + "<br/>";
+						}
+						clickTooltip.html(clickTooltipText)
+								.style("left", (d3.event.pageX + 20) + "px")
+								.style("top", (d3.event.pageY - 40) + "px");
+					} else {
+						d3.select(this)
+							.attr("r", 4.5)
+							.style("stroke-opacity", 0)
+							.transition();
+						d3.selectAll("#" + pointID).transition().style("opacity", 0).remove();
 					}
-					for (var i = 0; i < tooltipDisplay.length; i++) {
-						tooltipText += tooltipDisplay[i] + ": " + d[data[tooltipDisplay[i]]] + "<br/>";
-					}
-					tooltip.html(tooltipText)
-						.style("left", (d3.event.pageX + 20) + "px")
-						.style("top", (d3.event.pageY - 40) + "px");
-				})
-				.on("mouseout", function (d) {tooltip.transition().style("opacity", 0)})
-			
-			// legend
-			var legend = svg.selectAll(".legend")
-							.data(zColor.domain())
-							.enter().append("g")
-							.attr("class", "legend")
-							.attr("transform", function (d, i) {return "translate(0," + i * 20 + ")";});
-				legend.append("rect")
-					.attr("x", margin.left - 10)
-					.attr("width", 18)
-					.attr("height", 18)
-					.attr("fill", zColor);
-				legend.append("text")
-					.attr("x", margin.left + 10)
-					.attr("y", 14)
-					.style("text-anchor", "start")
-					.text(function (d) {return d;})
-		}
+                })
+                .on("mouseover", function (d) {
+                    tooltip.transition().style("opacity", 0.62);
+                    var tooltipDisplay = [],
+                        tooltipText = "";
+                    for (var i = 0; i < $(".tooltip_display").length; i++) {
+                        if ($(".tooltip_display")[i].checked == true) {
+                            tooltipDisplay.push($(".tooltip_display")[i].value);
+                        }
+                    }
+                    for (var i = 0; i < tooltipDisplay.length; i++) {
+                        tooltipText += tooltipDisplay[i] + ": " + d[tooltipDisplay[i]] + "<br/>";
+                    }
+                    tooltip.html(tooltipText)
+                        .style("left", (d3.event.pageX + 20) + "px")
+                        .style("top", (d3.event.pageY - 40) + "px");
+                })
+                .on("mouseout", function (d) {
+                    tooltip.transition().style("opacity", 0);
+                });
+
+            // legend
+            var legend = svg.selectAll(".legend")
+                .data(zColor.domain())
+                .enter().append("g")
+				.style("z-index", 1)
+                .attr("class", "legend")
+                .attr("transform", function (d, i) {
+                    return "translate(0," + i * 20 + ")";
+                });
+            legend.append("rect")
+                .attr("x", margin.left - 10)
+                .attr("width", 18)
+                .attr("height", 18)
+                .attr("fill", zColor);
+            legend.append("text")
+                .attr("x", margin.left + 10)
+                .attr("y", 14)
+                .style("text-anchor", "start")
+                .text(function (d) {
+                    return d;
+                })
+        }
 
         function addLine(x1, y1, x2, y2) {
             d3.select("g").append("svg:line")
@@ -416,20 +482,29 @@
                 .style("stroke-width", 2)
         }
 
-        function updateLine(x1, y1, x2, y2) {
-            d3.select("line.grid_line").transition()
-                .attr("x1", x1)
-                .attr("y1", y1)
-                .attr("x2", x2)
-                .attr("y2", y2)
+         // Initialize visualization
+        function initPlot() {
+            // Canvas initialization
+            d3.select("svg").remove();
+            d3.select(".tooltip").remove();
+			d3.select("#div_click_tooltip").remove();
+            $("#upload_status").html("");
+
+            if ($("#choose_x").val() == "") {
+                alert("x-axis not defined!");
+            } else if ($("#choose_y").val() == "") {
+                alert("y-axis not defined!");
+            } else {
+                scatterPlot(subsetData(rawDataObject.dataObject));
+            }
         }
 
-         // log user activity
+         // Log user activity
         function logOutput() {
 
         }
 
-         // export output to text file
+         // Export output to text file
         function exportToText() {
             var textToExport = new Blob([rawDataObject.userLog], {
                 type: "text/html",
@@ -468,7 +543,7 @@
     <hr/>
     <div id=control_panel style="width: 20%; float:left">
         <h3>Control Panel</h3>
-        <button id=scatterplot_data onclick="scatterPlot(subsetData(rawDataObject.dataObject))">Visualize Data</button>
+        <button id=scatterplot_data onclick="initPlot()">Refresh</button>
         <br/>
         <button id=log_data onclick="logOutput()">Log Data</button>
         <output id=log_status></output>
@@ -476,16 +551,16 @@
         <button id=export_data onclick="exportToText()">Export Data</button>
         <br/>
         <br/>
-		<!--
+        <!--
 		<button id=subset_data style="display:none" onclick="subsetData(rawDataObject.dataObject)">Apply Settings</button>
         <br/>
 		-->
         <div id=choose_variables>
-            <select id=choose_x style="display:none" onchange="scatterPlot(subsetData(rawDataObject.dataObject))"></select>
-            <select id=choose_y style="display:none" onchange="scatterPlot(subsetData(rawDataObject.dataObject))"></select>
+            <select id=choose_x style="display:none"></select>
+            <select id=choose_y style="display:none"></select>
         </div>
-        <div id=filter_checkbox style="width: 50%; float:left" onchange="scatterPlot(subsetData(rawDataObject.dataObject))"></div>
-		<div id=tooltip_checkbox style="width: 50%; float:right" onchange="scatterPlot(subsetData(rawDataObject.dataObject))"></div>
+        <div id=filter_checkbox style="width: 50%; float:left" onchange="initPlot()"></div>
+        <div id=tooltip_checkbox style="width: 50%; float:right" onchange="initPlot()"></div>
     </div>
     <div id=data_visualization style="width: 80%; float:right">
         <h3>Data Visualization</h3>
