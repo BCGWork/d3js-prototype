@@ -1,4 +1,4 @@
-Filter - Source,Filter - Business Unit,Filter - Product Family,Filter - Capacity,Absolute Px,GB Px,Customer revenues,Customer,Absolute grid Px,GB Grid Px,Grid deviation Percent,Discount slope per 10x,Anchor revenues,Anchor Px
+Filter - Source,Filter - Business Unit,Filter - Product Family,Filter - Capacity,Absolute Px,GB Px,Customer revenue,Customer,Absolute grid Px,GB Grid Px,Grid deviation,DSlope,Anchor revenue,Anchor Px
 FQ2'14 Negotiated,CSS,U110,8,13.40,1.68,25416017.94,HP,13.17,1.65,0.02,-0.05,25416018.00,13.17
 FQ2'14 Negotiated,CSS,U110,8,15.00,1.88,1180790.71,LG,14.04,1.76,0.07,-0.05,25416018.00,13.17
 FQ2'14 Negotiated,CSS,U110,16,15.88,0.99,4731400.32,Asustek,18.37,1.15,-0.14,-0.05,25416018.00,17.72

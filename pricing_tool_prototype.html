@@ -21,20 +21,20 @@
             pointer-events: none;
             z-index: 10;
             background: #dddddd;
-			font: sans-serif;
+            font: sans-serif;
             font-weight: bold;
             opacity: 0;
             padding: 5px;
             border: 2px solid #a1a1a1;
             border-radius: 8px;
         }
-		.click_tooltip {
+        .click_tooltip {
             position: absolute;
             pointer-events: none;
             z-index: 9;
             background: #636363;
-			color: white;
-			font: sans-serif;
+            color: white;
+            font: sans-serif;
             font-weight: bold;
             opacity: 0;
             padding: 5px;
@@ -52,8 +52,15 @@
         var rawDataObject = {};
         rawDataObject.userLog = "";
         rawDataObject.userLogCount = 0;
-        rawDataObject.hideList = ["filter", "anchor"];
-        rawDataObject.margin = {
+        rawDataObject.hideList = ["filter", "anchor", "dslope"];
+		rawDataObject.minX = 100000;
+        rawDataObject.anchorName = {
+            x: "Anchor revenue",
+            y: "Anchor Px"
+        }
+        rawDataObject.dSlopeName = ["DSlope"]
+
+         rawDataObject.margin = {
             top: 50,
             right: 150,
             bottom: 50,
@@ -66,6 +73,25 @@
         function sortNumber(a, b) {
             return a - b;
         }
+		
+		 // log base 10
+		function log10(x) {
+			return Math.log(x) / Math.LN10;
+		}
+		
+		 // Calculate grid line
+		 function findLine(slope, x1, x2, y2) {
+			var intercept = y2 - slope * x2,
+				y1 = slope * x1 + intercept,
+				output = {};
+			output["x1"] = x1;
+			output["y1"] = y1;
+			output["x2"] = x2;
+			output["y2"] = y2;
+			output["slope"] = slope;
+			output["intercept"] = intercept;
+			return output;
+		 }
 
          // OLS estimation
         function olsEstimate(x, y) {
@@ -294,55 +320,41 @@
                     }
                 }
             }
-            rawDataObject.plotData = data;
             return data;
         }
 
          // Data visualization window
-        function scatterPlot(data) {
-            // Setting variables for visualization
-            var xName = $("#choose_x").val(),
-                yName = $("#choose_y").val();
-            var margin = rawDataObject.margin,
-                width = rawDataObject.width,
-                height = rawDataObject.height,
-                zName = "Category";
-
-            data.forEach(function (d) {
-                d[xName] = +d[xName];
-                d[yName] = +d[yName];
-            })
-
-            // set up x
-            var xValue = function (d) {
-                    return (Math.log(d[xName]) / Math.LN10);
-                },
-                xScale = d3.scale.linear()
-                .domain([d3.min(data, xValue) - d3.min(data, xValue) * 0.05, d3.max(data, xValue) + d3.max(data, xValue) * 0.05])
-                .range([0, width]),
-                xAxis = d3.svg.axis().scale(xScale).orient("bottom");
-
-            // set up y
-            var yValue = function (d) {
-                    return d[yName];
-                },
-                yScale = d3.scale.linear()
-                .domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.2])
-                .range([height, 0]),
-                yAxis = d3.svg.axis().scale(yScale).orient("left");
-
-            // set up fill color
-            var zValue = function (d) {
-                    return d[zName];
-                },
-                zColor = d3.scale.category10();
+        function scatterPlot(data, settings) {
+			// Initialize settings
+			var xName = settings.xName,
+                yName = settings.yName,
+				zName = settings.zName,
+				minX = rawDataObject.minX,
+                margin = settings.margin,
+                width = settings.width,
+                height = settings.height;
+			// set up x
+			var xValue = function (d) {return log10(d[xName]);},
+				xScale = d3.scale.linear()
+						.domain([log10(minX) - log10(minX) * 0.1, d3.max(data, xValue) + d3.max(data, xValue) * 0.1])
+						.range([0, width]),
+				xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+			// set up y
+			var yValue = function (d) {return d[yName];},
+				yScale = d3.scale.linear()
+						.domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.1])
+						.range([height, 0]),
+				yAxis = d3.svg.axis().scale(yScale).orient("left");
+			// set up fill color
+			var zValue = function (d) {return d[zName];},
+				zColor = d3.scale.category10();
 
             // tooltip initialization
             var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip");
 
             // attach svg to canvas
             var svg = d3.select("#data_visualization").append("svg")
-                .attr("width", width + margin.left + margin.right)
+                .attr("width", $("#data_visualization").width() - 20)
                 .attr("height", height + margin.top + margin.bottom)
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -371,9 +383,9 @@
                 .style("text-anchor", "end")
                 .style("font-weight", "bold")
                 .text(yName);
-			
-			// Append click tooltip
-			d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
+
+            // Append click tooltips
+            d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
 
             // scatter plot
             svg.selectAll("scatterplot")
@@ -392,42 +404,42 @@
                 })
                 .style("z-index", 8)
                 .on("click", function (d) {
-					var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
-					var clickTooltip = d3.select("#div_click_tooltip")
-											.append("div")
-											.attr("id", pointID)
-											.attr("class", "click_tooltip");
-					if (d3.select(this).attr("r") < 8) {
-						d3.select(this)
-							.attr("r", 60)
-							.style("stroke", "black")
-							.style("stroke-width", "2px")
-							.style("stroke-opacity", 1)
-							.transition()
-							.duration(600)
-							.attr("r", 8);
-							
-						clickTooltip.transition().style("opacity", 0.62);
-						var clickTooltipDisplay = [],
-							clickTooltipText = "";
-						for (var i = 0; i < $(".tooltip_display").length; i++) {
-							if ($(".tooltip_display")[i].checked == true) {
-								clickTooltipDisplay.push($(".tooltip_display")[i].value);
-							}
-						}
-						for (var i = 0; i < clickTooltipDisplay.length; i++) {
-							clickTooltipText += clickTooltipDisplay[i] + ": " + d[clickTooltipDisplay[i]] + "<br/>";
-						}
-						clickTooltip.html(clickTooltipText)
-								.style("left", (d3.event.pageX + 20) + "px")
-								.style("top", (d3.event.pageY - 40) + "px");
-					} else {
-						d3.select(this)
-							.attr("r", 4.5)
-							.style("stroke-opacity", 0)
-							.transition();
-						d3.selectAll("#" + pointID).transition().style("opacity", 0).remove();
-					}
+                    var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
+                    var clickTooltip = d3.select("#div_click_tooltip")
+                        .append("div")
+                        .attr("id", pointID)
+                        .attr("class", "click_tooltip");
+                    if (d3.select(this).attr("r") < 8) {
+                        d3.select(this)
+                            .attr("r", 60)
+                            .style("stroke", "black")
+                            .style("stroke-width", "2px")
+                            .style("stroke-opacity", 1)
+                            .transition()
+                            .duration(600)
+                            .attr("r", 8);
+
+                        clickTooltip.transition().style("opacity", 0.62);
+                        var clickTooltipDisplay = [],
+                            clickTooltipText = "";
+                        for (var i = 0; i < $(".tooltip_display").length; i++) {
+                            if ($(".tooltip_display")[i].checked == true) {
+                                clickTooltipDisplay.push($(".tooltip_display")[i].value);
+                            }
+                        }
+                        for (var i = 0; i < clickTooltipDisplay.length; i++) {
+                            clickTooltipText += clickTooltipDisplay[i] + ": " + d[clickTooltipDisplay[i]] + "<br/>";
+                        }
+                        clickTooltip.html(clickTooltipText)
+                            .style("left", (d3.event.pageX + 20) + "px")
+                            .style("top", (d3.event.pageY - 40) + "px");
+                    } else {
+                        d3.select(this)
+                            .attr("r", 4.5)
+                            .style("stroke-opacity", 0)
+                            .transition();
+                        d3.selectAll("#" + pointID).transition().style("opacity", 0).remove();
+                    }
                 })
                 .on("mouseover", function (d) {
                     tooltip.transition().style("opacity", 0.62);
@@ -453,18 +465,18 @@
             var legend = svg.selectAll(".legend")
                 .data(zColor.domain())
                 .enter().append("g")
-				.style("z-index", 1)
+                .style("z-index", 1)
                 .attr("class", "legend")
                 .attr("transform", function (d, i) {
                     return "translate(0," + i * 20 + ")";
                 });
             legend.append("rect")
-                .attr("x", margin.left - 10)
+                .attr("x", xScale(d3.max(data, xValue)) * 1.1)
                 .attr("width", 18)
                 .attr("height", 18)
                 .attr("fill", zColor);
             legend.append("text")
-                .attr("x", margin.left + 10)
+                .attr("x", xScale(d3.max(data, xValue)) * 1.1 + 20)
                 .attr("y", 14)
                 .style("text-anchor", "start")
                 .text(function (d) {
@@ -472,30 +484,165 @@
                 })
         }
 
-        function addLine(x1, y1, x2, y2) {
-            d3.select("g").append("svg:line")
-                .attr("class", "grid_line")
-                .attr("x1", x1)
-                .attr("y1", y1)
-                .attr("x2", x2)
-                .attr("y2", y2)
-                .style("stroke-width", 2)
+        function addLine(data, settings) {
+			// Initialize settings
+			var anchorName = rawDataObject.anchorName,
+                dSlopeName = rawDataObject.dSlopeName,
+				minX = rawDataObject.minX,
+				lineVals = {},
+				xName = settings.xName,
+                yName = settings.yName,
+				zName = settings.zName,
+                margin = settings.margin,
+                width = settings.width,
+                height = settings.height;			
+			lineVals.category = [];
+			lineVals.dSlope = [];
+			lineVals.anchorX = [];
+			lineVals.anchorY = [];
+			// Set up x
+			var xValue = function (d) {return log10(d[xName]);},
+				xScale = d3.scale.linear()
+						.domain([log10(minX) - log10(minX) * 0.1, d3.max(data, xValue) + d3.max(data, xValue) * 0.1])
+						.range([0, width]);
+			// Set up y
+			var yValue = function (d) {return d[yName];},
+				yScale = d3.scale.linear()
+						.domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.1])
+						.range([height, 0]);
+			// Set up fill color
+			var zColor = d3.scale.category10();
+			
+			// Determine unique category
+			for (var i = 0; i < data.length; i++) {
+				if ($.inArray(data[i][zName], lineVals.category) == -1) {
+					lineVals.category.push(data[i][zName]);
+					lineVals.dSlope.push(parseFloat(data[i][dSlopeName]));
+					lineVals.anchorX.push(parseFloat(data[i][anchorName.x]));
+					lineVals.anchorY.push(parseFloat(data[i][anchorName.y]));
+				}
+			}
+			
+			// Plot through for loop
+			for (var i = 0; i < lineVals.category.length; i++) {
+				var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", ("anchor_tooltip" + i)).attr("class", "tooltip"),
+					minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", ("min_price_tooltip" + i)).attr("class", "tooltip");
+				
+				// Calculate coordinates, slope and intercept
+				var coord = findLine(lineVals.dSlope[i], log10(minX), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+				
+				// Append anchor point
+				d3.select("g")
+					.append("circle")
+					.attr("id", "anchorPoint")
+					.attr("class", "dot")
+					.attr("r", 6)
+					.attr("cx", xScale(coord.x2))
+					.attr("cy", yScale(coord.y2))
+					.style("fill", zColor(i))
+					.style("stroke", "black")
+					.style("stroke-width", "2px")
+					.style("stroke-opacity", 0.38)
+					.style("opacity", 0.38)
+					.style("z-index", 8);
+					
+				// Append minimum price point
+				d3.select("g")
+					.append("circle")
+					.attr("id", "minPricePoint")
+					.attr("class", "dot")
+					.attr("r", 6)
+					.attr("cx", xScale(coord.x1))
+					.attr("cy", yScale(coord.y1))
+					.style("fill", zColor(i))
+					.style("stroke", "black")
+					.style("stroke-width", "2px")
+					.style("stroke-opacity", 0.38)
+					.style("opacity", 0.38)
+					.style("z-index", 8);
+					
+				// Append grid line
+				d3.select("g").append("svg:line")
+//					.attr("id", lineVals.category[i])
+					.attr("class", "grid_line")
+					.attr("x1", xScale(coord.x1))
+					.attr("y1", yScale(coord.y1))
+					.attr("x2", xScale(coord.x2))
+					.attr("y2", yScale(coord.y2))
+					.style("stroke", zColor(i))
+					.style("stroke-width", 4)
+					.style("z-index", 7);
+			}
+			
+			/*
+					.on("mouseover", function () {
+						anchorTooltip.transition().style("opacity", 0.62);
+						anchorTooltip.html("Anchor Point<br/>" + xName + ": " + Math.round(coord.x2) + "<br/>" + yName + ": " + coord.y2.toFixed(2))
+							.style("left", (d3.event.pageX + 20) + "px")
+							.style("top", (d3.event.pageY - 40) + "px");
+					})
+					.on("mouseout", function () {
+						anchorTooltip.transition().style("opacity", 0);
+					});
+
+					.on("mouseover", function () {
+						minPriceTooltip.transition().style("opacity", 0.62);
+						minPriceTooltip.html("Minimum Price Point<br/>" + xName + ": " + Math.round(coord.x1) + "<br/>" + yName + ": " + coord.y1.toFixed(2))
+							.style("left", (d3.event.pageX + 20) + "px")
+							.style("top", (d3.event.pageY - 40) + "px");
+					})
+					.on("mouseout", function () {
+						minPriceTooltip.transition().style("opacity", 0);
+					});
+					
+			*/
+			
+			
         }
 
          // Initialize visualization
         function initPlot() {
             // Canvas initialization
-            d3.select("svg").remove();
-            d3.select(".tooltip").remove();
-			d3.select("#div_click_tooltip").remove();
+            d3.selectAll("svg").remove();
+            d3.selectAll(".tooltip").remove();
+            d3.selectAll("#div_click_tooltip").remove();
             $("#upload_status").html("");
+			
+			$("#choose_x").val("Customer revenue");
+			$("#choose_y").val("Absolute Px");
+			$(".checkbox")[0].checked = true;
+			$(".checkbox")[1].checked = true;
+			$(".checkbox")[2].checked = true;
+			$(".checkbox")[5].checked = true;
+			$(".checkbox")[10].checked = true;
+			$(".checkbox")[11].checked = true;
+			$(".tooltip_display")[2].checked = true;
+			$(".tooltip_display")[3].checked = true;
+			$(".tooltip_display")[4].checked = true;
+			$(".tooltip_display")[6].checked = true;
 
             if ($("#choose_x").val() == "") {
                 alert("x-axis not defined!");
             } else if ($("#choose_y").val() == "") {
                 alert("y-axis not defined!");
             } else {
-                scatterPlot(subsetData(rawDataObject.dataObject));
+                // Setting variables for visualization
+                var data = subsetData(rawDataObject.dataObject);
+				var settings = {};
+                settings.xName = $("#choose_x").val();
+                settings.yName = $("#choose_y").val();
+				settings.zName = "Category";
+                settings.margin = rawDataObject.margin;
+                settings.width = rawDataObject.width;
+                settings.height = rawDataObject.height;
+				// Convert x and y to numerical
+                data.forEach(function (d) {
+                    d[settings.xName] = +d[settings.xName];
+                    d[settings.yName] = +d[settings.yName];
+                });
+				
+                scatterPlot(data, settings);
+                addLine(data, settings);
             }
         }
 
