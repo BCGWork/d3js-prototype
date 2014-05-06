@@ -41,6 +41,17 @@
             border: 2px solid black;
             border-radius: 8px;
         }
+		.textbox {
+			position: absolute;
+            pointer-events: none;
+            z-index: 10;
+            font: sans-serif;
+            font-weight: bold;
+            opacity: 0;
+            padding: 5px;
+            border: 2px solid black;
+            border-radius: 8px;
+		}
     </style>
 
     <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
@@ -53,7 +64,7 @@
         rawDataObject.userLog = "";
         rawDataObject.userLogCount = 0;
         rawDataObject.hideList = ["filter", "anchor", "dslope"];
-		rawDataObject.minX = 100000;
+        rawDataObject.xMin = 100000;
         rawDataObject.anchorName = {
             x: "Anchor revenue",
             y: "Anchor Px"
@@ -73,25 +84,25 @@
         function sortNumber(a, b) {
             return a - b;
         }
-		
-		 // log base 10
-		function log10(x) {
-			return Math.log(x) / Math.LN10;
-		}
-		
-		 // Calculate grid line
-		 function findLine(slope, x1, x2, y2) {
-			var intercept = y2 - slope * x2,
-				y1 = slope * x1 + intercept,
-				output = {};
-			output["x1"] = x1;
-			output["y1"] = y1;
-			output["x2"] = x2;
-			output["y2"] = y2;
-			output["slope"] = slope;
-			output["intercept"] = intercept;
-			return output;
-		 }
+
+         // log base 10
+        function log10(x) {
+            return Math.log(x) / Math.LN10;
+        }
+
+         // Calculate grid line
+        function findLine(slope, x1, x2, y2) {
+            var intercept = y2 - slope * x2,
+                y1 = slope * x1 + intercept,
+                output = {};
+            output["x1"] = x1;
+            output["y1"] = y1;
+            output["x2"] = x2;
+            output["y2"] = y2;
+            output["slope"] = slope;
+            output["intercept"] = intercept;
+            return output;
+        }
 
          // OLS estimation
         function olsEstimate(x, y) {
@@ -325,29 +336,38 @@
 
          // Data visualization window
         function scatterPlot(data, settings) {
-			// Initialize settings
-			var xName = settings.xName,
+            // Initialize settings
+            var xName = settings.xName,
                 yName = settings.yName,
-				zName = settings.zName,
-				minX = rawDataObject.minX,
+                zName = settings.zName,
+                xMin = rawDataObject.xMin,
+                xMax = settings.xMax,
+                yMin = settings.yMin,
+                yMax = settings.yMax,
                 margin = settings.margin,
                 width = settings.width,
                 height = settings.height;
-			// set up x
-			var xValue = function (d) {return log10(d[xName]);},
-				xScale = d3.scale.linear()
-						.domain([log10(minX) - log10(minX) * 0.1, d3.max(data, xValue) + d3.max(data, xValue) * 0.1])
-						.range([0, width]),
-				xAxis = d3.svg.axis().scale(xScale).orient("bottom");
-			// set up y
-			var yValue = function (d) {return d[yName];},
-				yScale = d3.scale.linear()
-						.domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.1])
-						.range([height, 0]),
-				yAxis = d3.svg.axis().scale(yScale).orient("left");
-			// set up fill color
-			var zValue = function (d) {return d[zName];},
-				zColor = d3.scale.category10();
+            // set up x
+            var xValue = function (d) {
+                    return log10(d[xName]);
+                },
+                xScale = d3.scale.linear()
+                .domain([log10(xMin) - log10(xMin) * 0.1, log10(xMax) + log10(xMax) * 0.1])
+                .range([0, width]),
+                xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+            // set up y
+            var yValue = function (d) {
+                    return d[yName];
+                },
+                yScale = d3.scale.linear()
+                .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
+                .range([height, 0]),
+                yAxis = d3.svg.axis().scale(yScale).orient("left");
+            // set up fill color
+            var zValue = function (d) {
+                    return d[zName];
+                },
+                zColor = d3.scale.category10();
 
             // tooltip initialization
             var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip");
@@ -388,7 +408,7 @@
             d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
 
             // scatter plot
-            svg.selectAll("scatterplot")
+            svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
                 .data(data)
                 .enter().append("circle")
                 .attr("class", "dot")
@@ -485,121 +505,162 @@
         }
 
         function addLine(data, settings) {
-			// Initialize settings
-			var anchorName = rawDataObject.anchorName,
+            // Initialize settings
+            var anchorName = rawDataObject.anchorName,
                 dSlopeName = rawDataObject.dSlopeName,
-				minX = rawDataObject.minX,
-				lineVals = {},
-				xName = settings.xName,
+                xMin = rawDataObject.xMin,
+                xMax = settings.xMax,
+                yMin = settings.yMin,
+                yMax = settings.yMax,
+                lineVals = {},
+                xName = settings.xName,
                 yName = settings.yName,
-				zName = settings.zName,
+                zName = settings.zName,
                 margin = settings.margin,
                 width = settings.width,
-                height = settings.height;			
-			lineVals.category = [];
-			lineVals.dSlope = [];
-			lineVals.anchorX = [];
-			lineVals.anchorY = [];
-			// Set up x
-			var xValue = function (d) {return log10(d[xName]);},
-				xScale = d3.scale.linear()
-						.domain([log10(minX) - log10(minX) * 0.1, d3.max(data, xValue) + d3.max(data, xValue) * 0.1])
-						.range([0, width]);
-			// Set up y
-			var yValue = function (d) {return d[yName];},
-				yScale = d3.scale.linear()
-						.domain([d3.min(data, yValue) - d3.min(data, yValue) * 0.1, d3.max(data, yValue) + d3.max(data, yValue) * 0.1])
-						.range([height, 0]);
-			// Set up fill color
-			var zColor = d3.scale.category10();
-			
-			// Determine unique category
-			for (var i = 0; i < data.length; i++) {
-				if ($.inArray(data[i][zName], lineVals.category) == -1) {
-					lineVals.category.push(data[i][zName]);
-					lineVals.dSlope.push(parseFloat(data[i][dSlopeName]));
-					lineVals.anchorX.push(parseFloat(data[i][anchorName.x]));
-					lineVals.anchorY.push(parseFloat(data[i][anchorName.y]));
-				}
-			}
-			
-			// Plot through for loop
-			for (var i = 0; i < lineVals.category.length; i++) {
-				var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", ("anchor_tooltip" + i)).attr("class", "tooltip"),
-					minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", ("min_price_tooltip" + i)).attr("class", "tooltip");
-				
-				// Calculate coordinates, slope and intercept
-				var coord = findLine(lineVals.dSlope[i], log10(minX), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
-				
-				// Append anchor point
-				d3.select("g")
-					.append("circle")
-					.attr("id", "anchorPoint")
-					.attr("class", "dot")
-					.attr("r", 6)
-					.attr("cx", xScale(coord.x2))
-					.attr("cy", yScale(coord.y2))
-					.style("fill", zColor(i))
-					.style("stroke", "black")
-					.style("stroke-width", "2px")
-					.style("stroke-opacity", 0.38)
-					.style("opacity", 0.38)
-					.style("z-index", 8);
-					
-				// Append minimum price point
-				d3.select("g")
-					.append("circle")
-					.attr("id", "minPricePoint")
-					.attr("class", "dot")
-					.attr("r", 6)
-					.attr("cx", xScale(coord.x1))
-					.attr("cy", yScale(coord.y1))
-					.style("fill", zColor(i))
-					.style("stroke", "black")
-					.style("stroke-width", "2px")
-					.style("stroke-opacity", 0.38)
-					.style("opacity", 0.38)
-					.style("z-index", 8);
-					
-				// Append grid line
-				d3.select("g").append("svg:line")
-//					.attr("id", lineVals.category[i])
-					.attr("class", "grid_line")
-					.attr("x1", xScale(coord.x1))
-					.attr("y1", yScale(coord.y1))
-					.attr("x2", xScale(coord.x2))
-					.attr("y2", yScale(coord.y2))
-					.style("stroke", zColor(i))
-					.style("stroke-width", 4)
-					.style("z-index", 7);
-			}
-			
-			/*
-					.on("mouseover", function () {
-						anchorTooltip.transition().style("opacity", 0.62);
-						anchorTooltip.html("Anchor Point<br/>" + xName + ": " + Math.round(coord.x2) + "<br/>" + yName + ": " + coord.y2.toFixed(2))
-							.style("left", (d3.event.pageX + 20) + "px")
-							.style("top", (d3.event.pageY - 40) + "px");
-					})
-					.on("mouseout", function () {
-						anchorTooltip.transition().style("opacity", 0);
-					});
+                height = settings.height;
+            lineVals.category = [];
+            lineVals.dSlope = [];
+            lineVals.anchorX = [];
+            lineVals.anchorY = [];
+            // Set up x
+            var xScale = d3.scale.linear()
+                .domain([log10(xMin) - log10(xMin) * 0.1, log10(xMax) + log10(xMax) * 0.1])
+                .range([0, width]);
+            // Set up y
+            var yScale = d3.scale.linear()
+                .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
+                .range([height, 0]);
+            // Set up fill color
+            var zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-					.on("mouseover", function () {
-						minPriceTooltip.transition().style("opacity", 0.62);
-						minPriceTooltip.html("Minimum Price Point<br/>" + xName + ": " + Math.round(coord.x1) + "<br/>" + yName + ": " + coord.y1.toFixed(2))
-							.style("left", (d3.event.pageX + 20) + "px")
-							.style("top", (d3.event.pageY - 40) + "px");
-					})
-					.on("mouseout", function () {
-						minPriceTooltip.transition().style("opacity", 0);
-					});
-					
-			*/
-			
-			
+            // Determine unique category
+            for (var i = 0; i < data.length; i++) {
+                if ($.inArray(data[i][zName], lineVals.category) == -1) {
+                    lineVals.category.push(data[i][zName]);
+                    lineVals.dSlope.push(parseFloat(data[i][dSlopeName]));
+                    lineVals.anchorX.push(parseFloat(data[i][anchorName.x]));
+                    lineVals.anchorY.push(parseFloat(data[i][anchorName.y]));
+                }
+            }
+			rawDataObject.lineVals = lineVals;
+
+            // Plot through for loop
+            var pointData = [];
+            for (var i = 0; i < lineVals.category.length; i++) {
+                // Calculate coordinates, slope and intercept
+                var coord = findLine(lineVals.dSlope[i], log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+                coord["fillName"] = "group " + i;
+                pointData.push(coord);
+
+                // Append grid line
+                d3.select("g")
+                    .append("svg:line")
+                    .attr("id", "line_" + i)
+                    .attr("class", "grid_line")
+                    .attr("x1", xScale(coord.x1))
+                    .attr("y1", yScale(coord.y1))
+                    .attr("x2", xScale(coord.x2))
+                    .attr("y2", yScale(coord.y2))
+                    .style("stroke", zColor(i))
+                    .style("stroke-width", 4)
+                    .style("z-index", 7);
+            }
+
+            var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", "anchor_tooltip").attr("class", "tooltip"),
+                minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", "min_price_tooltip").attr("class", "tooltip");
+
+            // Append anchor point
+            d3.select("g").append("g").attr("class", "anchorpoints").selectAll("anchorpoints").data(pointData).enter()
+                .append("circle")
+                .attr("class", "anchor_point")
+                .attr("r", 6)
+                .attr("cx", function (d) {
+                    return xScale(d["x2"]);
+                })
+                .attr("cy", function (d) {
+                    return yScale(d["y2"]);
+                })
+                .style("fill", function (d) {
+                    return zColor(d["fillName"]);
+                })
+                .style("stroke", "black")
+                .style("stroke-width", "2px")
+                .style("stroke-opacity", 0.38)
+                .style("opacity", 0.38)
+                .style("z-index", 8)
+                .on("mouseover", function (d) {
+                    var tooltipText = "Anchor Point<br/>" + xName + ": " + Math.round(Math.pow(10, d["x2"])) + "<br/>" + yName + ": " + d["y2"].toFixed(2);
+                    anchorTooltip.transition().style("opacity", 0.62);
+                    anchorTooltip.html(tooltipText)
+                        .style("left", (d3.event.pageX + 20) + "px")
+                        .style("top", (d3.event.pageY - 40) + "px");
+                })
+                .on("mouseout", function (d) {
+                    anchorTooltip.transition().style("opacity", 0);
+                });
+
+            // Append minimum price point
+            d3.select("g").append("g").attr("class", "minpricepoints").selectAll("minpricepoints").data(pointData).enter()
+                .append("circle")
+                .attr("class", "min_price_point")
+                .attr("r", 6)
+                .attr("cx", function (d) {
+                    return xScale(d["x1"]);
+                })
+                .attr("cy", function (d) {
+                    return yScale(d["y1"]);
+                })
+                .style("fill", function (d) {
+                    return zColor(d["fillName"]);
+                })
+                .style("stroke", "black")
+                .style("stroke-width", "2px")
+                .style("stroke-opacity", 0.38)
+                .style("opacity", 0.38)
+                .style("z-index", 8)
+                .on("mouseover", function (d) {
+                    var tooltipText = "Minimum Price Point<br/>" + xName + ": " + Math.round(Math.pow(10, d["x1"])) + "<br/>" + yName + ": " + d["y1"].toFixed(2);
+                    minPriceTooltip.transition().style("opacity", 0.62);
+                    minPriceTooltip.html(tooltipText)
+                        .style("left", (d3.event.pageX + 20) + "px")
+                        .style("top", (d3.event.pageY - 40) + "px");
+                })
+                .on("mouseout", function (d) {
+                    minPriceTooltip.transition().style("opacity", 0);
+                });
         }
-
+		
+		 // Grid line interactivity
+		function updateLine(settings) {
+            // Initialize settings
+            var xMin = rawDataObject.xMin,
+                xMax = settings.xMax,
+                yMin = settings.yMin,
+                yMax = settings.yMax,
+                lineVals = rawDataObject.lineVals,
+                width = settings.width,
+                height = settings.height;
+            // Set up y
+            var yScale = d3.scale.linear()
+                .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
+                .range([height, 0]);
+			// Update lines
+            for (var i = 0; i < $(".grid_line").length; i++) {
+                // Calculate coordinates, slope and intercept
+                var coord = findLine(parseFloat($("#line_textbox").val()), log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+                d3.select("#line_"+i).transition().attr("y1", yScale(coord.y1));
+            }
+/*
+			d3.selectAll(".grid_line").on("click", function(d) {
+				var lineTextbox = $("#data_visualization").append("div").attr("id", "lineTextbox").attr("class", "textbox");
+				lineTextbox.html("line slope: <input type='text' id=line_slope></input>")
+									.style("left", (d3.event.pageX - 20) + "px")
+									.style("top", (d3.event.pageY - 40) + "px");
+			});
+*/
+		}
+		
          // Initialize visualization
         function initPlot() {
             // Canvas initialization
@@ -607,19 +668,20 @@
             d3.selectAll(".tooltip").remove();
             d3.selectAll("#div_click_tooltip").remove();
             $("#upload_status").html("");
-			
-			$("#choose_x").val("Customer revenue");
-			$("#choose_y").val("Absolute Px");
-			$(".checkbox")[0].checked = true;
-			$(".checkbox")[1].checked = true;
-			$(".checkbox")[2].checked = true;
-			$(".checkbox")[5].checked = true;
-			$(".checkbox")[10].checked = true;
-			$(".checkbox")[11].checked = true;
-			$(".tooltip_display")[2].checked = true;
-			$(".tooltip_display")[3].checked = true;
-			$(".tooltip_display")[4].checked = true;
-			$(".tooltip_display")[6].checked = true;
+			$("#update_line").show();
+
+            $("#choose_x").val("Customer revenue");
+            $("#choose_y").val("Absolute Px");
+            $(".checkbox")[0].checked = true;
+            $(".checkbox")[1].checked = true;
+            $(".checkbox")[2].checked = true;
+            $(".checkbox")[5].checked = true;
+            $(".checkbox")[10].checked = true;
+            $(".checkbox")[11].checked = true;
+            $(".tooltip_display")[2].checked = true;
+            $(".tooltip_display")[3].checked = true;
+            $(".tooltip_display")[4].checked = true;
+            $(".tooltip_display")[6].checked = true;
 
             if ($("#choose_x").val() == "") {
                 alert("x-axis not defined!");
@@ -628,19 +690,35 @@
             } else {
                 // Setting variables for visualization
                 var data = subsetData(rawDataObject.dataObject);
-				var settings = {};
+                var settings = {};
                 settings.xName = $("#choose_x").val();
                 settings.yName = $("#choose_y").val();
-				settings.zName = "Category";
+                settings.zName = "Category";
                 settings.margin = rawDataObject.margin;
                 settings.width = rawDataObject.width;
                 settings.height = rawDataObject.height;
-				// Convert x and y to numerical
+                settings.xMax = data[0][settings.xName];
+                settings.yMin = data[0][settings.yName];
+                settings.yMax = data[0][settings.yName];
+                // Convert x and y to numerical
                 data.forEach(function (d) {
                     d[settings.xName] = +d[settings.xName];
                     d[settings.yName] = +d[settings.yName];
                 });
-				
+                // Determine smallest and largest values for x and y
+                for (var i = 0; i < data.length; i++) {
+                    if (settings.xMax < data[i][settings.xName]) {
+                        settings.xMax = data[i][settings.xName];
+                    }
+                    if (settings.yMax < data[i][settings.yName]) {
+                        settings.yMax = data[i][settings.yName];
+                    }
+                    if (settings.yMin > data[i][settings.yName]) {
+                        settings.yMin = data[i][settings.yName];
+                    }
+                }
+				rawDataObject.settings = settings;
+
                 scatterPlot(data, settings);
                 addLine(data, settings);
             }
@@ -696,12 +774,13 @@
         <output id=log_status></output>
         <br/>
         <button id=export_data onclick="exportToText()">Export Data</button>
-        <br/>
-        <br/>
+        <br/><hr/><br/>
         <!--
 		<button id=subset_data style="display:none" onclick="subsetData(rawDataObject.dataObject)">Apply Settings</button>
         <br/>
 		-->
+		<div id=update_line style="display:none">Set discount slope: <input type="text" id=line_textbox onchange="updateLine(rawDataObject.settings)"></input></div>
+		<br/>
         <div id=choose_variables>
             <select id=choose_x style="display:none"></select>
             <select id=choose_y style="display:none"></select>
