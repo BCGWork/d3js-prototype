@@ -41,8 +41,8 @@
             border: 2px solid black;
             border-radius: 8px;
         }
-		.textbox {
-			position: absolute;
+        .textbox {
+            position: absolute;
             pointer-events: none;
             z-index: 10;
             font: sans-serif;
@@ -51,7 +51,7 @@
             padding: 5px;
             border: 2px solid black;
             border-radius: 8px;
-		}
+        }
     </style>
 
     <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
@@ -543,7 +543,7 @@
                     lineVals.anchorY.push(parseFloat(data[i][anchorName.y]));
                 }
             }
-			rawDataObject.lineVals = lineVals;
+            rawDataObject.lineVals = lineVals;
 
             // Plot through for loop
             var pointData = [];
@@ -563,8 +563,21 @@
                     .attr("x2", xScale(coord.x2))
                     .attr("y2", yScale(coord.y2))
                     .style("stroke", zColor(i))
-                    .style("stroke-width", 4)
-                    .style("z-index", 7);
+                    .style("stroke-width", 6)
+					.style("opacity", 0.68)
+                    .style("z-index", 7)
+                    .on("click", function () {
+                        $(".externalObject").remove();
+                        rawDataObject.clickedLineId = d3.select(this).attr("id");
+                        d3.select("svg").append("foreignObject")
+                            .attr("class", "externalObject")
+                            .attr("x", (d3.mouse(this)[0] - 20) + "px")
+                            .attr("y", (d3.mouse(this)[1] + 20) + "px")
+                            .attr("width", 200)
+                            .attr("height", 100)
+                            .append("xhtml:div")
+                            .html("<input type='text' id=new_slope placeholder='enter new discount slope' onchange=updateLine(rawDataObject.settings)></input>");
+                    });
             }
 
             var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", "anchor_tooltip").attr("class", "tooltip"),
@@ -630,14 +643,15 @@
                     minPriceTooltip.transition().style("opacity", 0);
                 });
         }
-		
-		 // Grid line interactivity
-		function updateLine(settings) {
+
+         // Grid line interactivity
+        function updateLine(settings) {
             // Initialize settings
             var xMin = rawDataObject.xMin,
                 xMax = settings.xMax,
                 yMin = settings.yMin,
                 yMax = settings.yMax,
+                clickedLineId = rawDataObject.clickedLineId,
                 lineVals = rawDataObject.lineVals,
                 width = settings.width,
                 height = settings.height;
@@ -645,22 +659,13 @@
             var yScale = d3.scale.linear()
                 .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
                 .range([height, 0]);
-			// Update lines
-            for (var i = 0; i < $(".grid_line").length; i++) {
-                // Calculate coordinates, slope and intercept
-                var coord = findLine(parseFloat($("#line_textbox").val()), log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
-                d3.select("#line_"+i).transition().attr("y1", yScale(coord.y1));
-            }
-/*
-			d3.selectAll(".grid_line").on("click", function(d) {
-				var lineTextbox = $("#data_visualization").append("div").attr("id", "lineTextbox").attr("class", "textbox");
-				lineTextbox.html("line slope: <input type='text' id=line_slope></input>")
-									.style("left", (d3.event.pageX - 20) + "px")
-									.style("top", (d3.event.pageY - 40) + "px");
-			});
-*/
-		}
-		
+            // Update lines
+            var index = clickedLineId.slice(-1);
+            var coord = findLine(parseFloat($("#new_slope").val()), log10(xMin), log10(lineVals.anchorX[index]), lineVals.anchorY[index]);
+            d3.select("#" + clickedLineId).transition().attr("y1", yScale(coord.y1));
+            $("#new_slope").hide();
+        }
+
          // Initialize visualization
         function initPlot() {
             // Canvas initialization
@@ -668,7 +673,14 @@
             d3.selectAll(".tooltip").remove();
             d3.selectAll("#div_click_tooltip").remove();
             $("#upload_status").html("");
-			$("#update_line").show();
+            $(document).mouseup(function (e) {
+                var container = $("#new_slope");
+                if (!container.is(e.target) // if the target of the click isn't the container...
+                    && container.has(e.target).length === 0) // ... nor a descendant of the container
+                {
+                    container.hide();
+                }
+            });
 
             $("#choose_x").val("Customer revenue");
             $("#choose_y").val("Absolute Px");
@@ -717,7 +729,7 @@
                         settings.yMin = data[i][settings.yName];
                     }
                 }
-				rawDataObject.settings = settings;
+                rawDataObject.settings = settings;
 
                 scatterPlot(data, settings);
                 addLine(data, settings);
@@ -774,13 +786,12 @@
         <output id=log_status></output>
         <br/>
         <button id=export_data onclick="exportToText()">Export Data</button>
-        <br/><hr/><br/>
+        <br/>
+        <hr/>
         <!--
 		<button id=subset_data style="display:none" onclick="subsetData(rawDataObject.dataObject)">Apply Settings</button>
         <br/>
 		-->
-		<div id=update_line style="display:none">Set discount slope: <input type="text" id=line_textbox onchange="updateLine(rawDataObject.settings)"></input></div>
-		<br/>
         <div id=choose_variables>
             <select id=choose_x style="display:none"></select>
             <select id=choose_y style="display:none"></select>
