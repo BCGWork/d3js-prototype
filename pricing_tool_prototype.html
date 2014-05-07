@@ -550,7 +550,7 @@
             for (var i = 0; i < lineVals.category.length; i++) {
                 // Calculate coordinates, slope and intercept
                 var coord = findLine(lineVals.dSlope[i], log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
-                coord["fillName"] = "group " + i;
+                coord["fillName"] = "group_" + i;
                 pointData.push(coord);
 
                 // Append grid line
@@ -568,7 +568,7 @@
                     .style("z-index", 7)
                     .on("click", function () {
                         $(".externalObject").remove();
-                        rawDataObject.clickedLineId = d3.select(this).attr("id");
+//                        rawDataObject.clickedLineId = d3.select(this).attr("id");
                         d3.select("svg").append("foreignObject")
                             .attr("class", "externalObject")
                             .attr("x", (d3.mouse(this)[0] - 20) + "px")
@@ -579,13 +579,16 @@
                             .html("<input type='text' id=new_slope placeholder='enter new discount slope' onchange=updateLine(rawDataObject.settings)></input>");
                     });
             }
-
+			
             var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", "anchor_tooltip").attr("class", "tooltip"),
                 minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", "min_price_tooltip").attr("class", "tooltip");
 
             // Append anchor point
             d3.select("g").append("g").attr("class", "anchorpoints").selectAll("anchorpoints").data(pointData).enter()
                 .append("circle")
+				.attr("id", function (d) {
+					return ("anchor_" + d["fillName"]);
+				})
                 .attr("class", "anchor_point")
                 .attr("r", 6)
                 .attr("cx", function (d) {
@@ -616,6 +619,9 @@
             // Append minimum price point
             d3.select("g").append("g").attr("class", "minpricepoints").selectAll("minpricepoints").data(pointData).enter()
                 .append("circle")
+				.attr("id", function (d) {
+					return ("minx_" + d["fillName"]);
+				})
                 .attr("class", "min_price_point")
                 .attr("r", 6)
                 .attr("cx", function (d) {
@@ -651,7 +657,7 @@
                 xMax = settings.xMax,
                 yMin = settings.yMin,
                 yMax = settings.yMax,
-                clickedLineId = rawDataObject.clickedLineId,
+//                clickedLineId = rawDataObject.clickedLineId,
                 lineVals = rawDataObject.lineVals,
                 width = settings.width,
                 height = settings.height;
@@ -660,10 +666,40 @@
                 .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
                 .range([height, 0]);
             // Update lines
-            var index = clickedLineId.slice(-1);
-            var coord = findLine(parseFloat($("#new_slope").val()), log10(xMin), log10(lineVals.anchorX[index]), lineVals.anchorY[index]);
-            d3.select("#" + clickedLineId).transition().attr("y1", yScale(coord.y1));
+			for (var i = 0; i < $(".grid_line").length; i++) {
+				var coord = findLine(parseFloat($("#new_slope").val()), log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+				d3.select("#line_" + i).transition().attr("y1", yScale(coord.y1));
+			}
             $("#new_slope").hide();
+        }
+
+         // Log user activity
+        function logOutput() {
+
+        }
+
+         // Export output to text file
+        function exportToText() {
+            var textToExport = new Blob([rawDataObject.userLog], {
+                type: "text/html",
+                endings: "native"
+            });
+            var downloadLink = document.createElement("a");
+            downloadLink.download = "UpdatedData.csv";
+            if (window.webkitURL != null) {
+                // Chrome allows the link to be clicked without actually adding it to the DOM.
+                downloadLink.href = window.webkitURL.createObjectURL(textToExport);
+            } else {
+                // Firefox requires the link to be added to the DOM before it can be clicked.
+                function destroyClickedElement(event) {
+                    document.body.removeChild(event.target);
+                }
+                downloadLink.href = window.URL.createObjectURL(textToExport);
+                downloadLink.onclick = destroyClickedElement;
+                downloadLink.style.display = "none";
+                document.body.appendChild(downloadLink);
+            }
+            downloadLink.click();
         }
 
          // Initialize visualization
@@ -734,35 +770,6 @@
                 scatterPlot(data, settings);
                 addLine(data, settings);
             }
-        }
-
-         // Log user activity
-        function logOutput() {
-
-        }
-
-         // Export output to text file
-        function exportToText() {
-            var textToExport = new Blob([rawDataObject.userLog], {
-                type: "text/html",
-                endings: "native"
-            });
-            var downloadLink = document.createElement("a");
-            downloadLink.download = "UpdatedData.csv";
-            if (window.webkitURL != null) {
-                // Chrome allows the link to be clicked without actually adding it to the DOM.
-                downloadLink.href = window.webkitURL.createObjectURL(textToExport);
-            } else {
-                // Firefox requires the link to be added to the DOM before it can be clicked.
-                function destroyClickedElement(event) {
-                    document.body.removeChild(event.target);
-                }
-                downloadLink.href = window.URL.createObjectURL(textToExport);
-                downloadLink.onclick = destroyClickedElement;
-                downloadLink.style.display = "none";
-                document.body.appendChild(downloadLink);
-            }
-            downloadLink.click();
         }
     </script>
 </head>
