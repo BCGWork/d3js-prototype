@@ -61,17 +61,18 @@
     <script>
         // Declare global variables
         var rawDataObject = {};
-        rawDataObject.userLog = "";
-        rawDataObject.userLogCount = 0;
         rawDataObject.hideList = ["filter", "anchor", "dslope"];
-        rawDataObject.xMin = 100000;
+		rawDataObject.updateField = ["Absolute grid Px", "GB grid Px", "Grid deviation"];
         rawDataObject.anchorName = {
             x: "Anchor revenue",
             y: "Anchor Px"
-        }
-        rawDataObject.dSlopeName = ["DSlope"]
-
-         rawDataObject.margin = {
+        };
+        rawDataObject.dSlopeName = ["DSlope"];
+		rawDataObject.capacityName = ["Filter - Capacity"];
+        rawDataObject.userLogCount = 0;
+		rawDataObject.userLog = "";
+        rawDataObject.xMin = 100000;
+		rawDataObject.margin = {
             top: 50,
             right: 150,
             bottom: 50,
@@ -85,10 +86,15 @@
             return a - b;
         }
 
-         // log base 10
+         // Log base 10
         function log10(x) {
             return Math.log(x) / Math.LN10;
         }
+		
+		 // Pull all values of a key from an object
+		function extractValue(object, key) {
+			return object.map(function(el) {return el[key];});
+		}
 
          // Calculate grid line
         function findLine(slope, x1, x2, y2) {
@@ -157,7 +163,7 @@
             readData(file);
 
             $("#upload_status").html(output);
-            d3.select("svg").remove();
+			d3.select("svg").remove();
         }
 
          // Read and parse data from csv
@@ -212,6 +218,7 @@
 
          // Define tooltip display variable
         function defineTooltip(dataHeader) {
+			$("#tooltip_checkbox").empty();
             $("#tooltip_checkbox").append("<br/>");
             $("#tooltip_checkbox").append("<div><b>Tooltip Settings</b></div>");
             for (var i = 0; i < dataHeader.length; i++) {
@@ -371,6 +378,8 @@
 
             // tooltip initialization
             var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip");
+			// Append click tooltips
+            d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
 
             // attach svg to canvas
             var svg = d3.select("#data_visualization").append("svg")
@@ -403,9 +412,6 @@
                 .style("text-anchor", "end")
                 .style("font-weight", "bold")
                 .text(yName);
-
-            // Append click tooltips
-            d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
 
             // scatter plot
             svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
@@ -512,17 +518,13 @@
                 xMax = settings.xMax,
                 yMin = settings.yMin,
                 yMax = settings.yMax,
-                lineVals = {},
+				lineVals = [],
                 xName = settings.xName,
                 yName = settings.yName,
                 zName = settings.zName,
                 margin = settings.margin,
                 width = settings.width,
                 height = settings.height;
-            lineVals.category = [];
-            lineVals.dSlope = [];
-            lineVals.anchorX = [];
-            lineVals.anchorY = [];
             // Set up x
             var xScale = d3.scale.linear()
                 .domain([log10(xMin) - log10(xMin) * 0.1, log10(xMax) + log10(xMax) * 0.1])
@@ -536,20 +538,22 @@
 
             // Determine unique category
             for (var i = 0; i < data.length; i++) {
-                if ($.inArray(data[i][zName], lineVals.category) == -1) {
-                    lineVals.category.push(data[i][zName]);
-                    lineVals.dSlope.push(parseFloat(data[i][dSlopeName]));
-                    lineVals.anchorX.push(parseFloat(data[i][anchorName.x]));
-                    lineVals.anchorY.push(parseFloat(data[i][anchorName.y]));
+                if ($.inArray(data[i][zName], extractValue(lineVals, "category")) == -1) {
+					var objValue = {"category": data[i][zName],
+									"dSlope": parseFloat(data[i][dSlopeName]),
+									"anchorX": parseFloat(data[i][anchorName.x]),
+									"anchorY": parseFloat(data[i][anchorName.y]),
+									"intercept": 0};
+					lineVals.push(objValue);
                 }
             }
-            rawDataObject.lineVals = lineVals;
 
             // Plot through for loop
             var pointData = [];
-            for (var i = 0; i < lineVals.category.length; i++) {
+            for (var i = 0; i < lineVals.length; i++) {
                 // Calculate coordinates, slope and intercept
-                var coord = findLine(lineVals.dSlope[i], log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+                var coord = findLine(lineVals[i].dSlope, log10(xMin), log10(lineVals[i].anchorX), lineVals[i].anchorY);
+				lineVals[i].intercept = coord.intercept;
                 coord["fillName"] = "group_" + i;
                 pointData.push(coord);
 
@@ -579,6 +583,7 @@
                             .html("<input type='text' id=new_slope placeholder='enter new discount slope' onchange=updateLine(rawDataObject.settings)></input>");
                     });
             }
+			rawDataObject.lineVals = lineVals;
 			
             var anchorTooltip = d3.select("#data_visualization").append("div").attr("id", "anchor_tooltip").attr("class", "tooltip"),
                 minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", "min_price_tooltip").attr("class", "tooltip");
@@ -657,25 +662,56 @@
                 xMax = settings.xMax,
                 yMin = settings.yMin,
                 yMax = settings.yMax,
+				xName = settings.xName,
+				yName = settings.yName,
+				dSlopeName = rawDataObject.dSlopeName,
 //                clickedLineId = rawDataObject.clickedLineId,
                 lineVals = rawDataObject.lineVals,
+				updateField = rawDataObject.updateField,
+				capacity = rawDataObject.capacityName,
+				newSlope = parseFloat($("#new_slope").val()),
                 width = settings.width,
                 height = settings.height;
             // Set up y
             var yScale = d3.scale.linear()
                 .domain([yMin - yMin * 0.1, yMax + yMax * 0.1])
                 .range([height, 0]);
-            // Update lines
-			for (var i = 0; i < $(".grid_line").length; i++) {
-				var coord = findLine(parseFloat($("#new_slope").val()), log10(xMin), log10(lineVals.anchorX[i]), lineVals.anchorY[i]);
+            
+			// Update lines
+			for (var i = 0; i < lineVals.length; i++) {
+				coord = findLine(newSlope, log10(xMin), log10(lineVals[i].anchorX), lineVals[i].anchorY);
 				d3.select("#line_" + i).transition().attr("y1", yScale(coord.y1));
 			}
             $("#new_slope").hide();
+			
+			// Update data
+			for (var i = 0; i < rawDataObject.currentData.length; i++) {
+				for (var j = 0; j < lineVals.length; j++) {
+					if (rawDataObject.currentData[i]["Category"] == lineVals[j]["category"]) {
+						rawDataObject.currentData[i][updateField[0]] = lineVals[j]["intercept"] + newSlope * log10(rawDataObject.currentData[i][xName]);
+						rawDataObject.currentData[i][updateField[1]] = rawDataObject.currentData[i][updateField[0]] / rawDataObject.currentData[i][capacity];
+						rawDataObject.currentData[i][updateField[2]] = (rawDataObject.currentData[i][updateField[0]] - rawDataObject.currentData[i][yName]) / rawDataObject.currentData[i][yName];
+						rawDataObject.currentData[i][dSlopeName] = newSlope;
+					}
+				}
+			}
         }
 
          // Log user activity
         function logOutput() {
-
+			// Take snapshot of current settings
+//			rawDataObject.userLogCount += 1;
+			for (var i = 0; i < rawDataObject.currentData.length; i++) {
+				var tempLog = [];
+				for (var key in rawDataObject.currentData[i]) {
+					tempLog.push(rawDataObject.currentData[i][key]);
+				}
+				rawDataObject.userLog = rawDataObject.userLog.concat(tempLog.toString() + "\n");
+			}
+			
+			// Set log status in div
+			$("#log_status").html("Data Saved!").show();
+			setTimeout(function () {$("#log_status").fadeOut("slow");}, 800);
         }
 
          // Export output to text file
@@ -702,13 +738,15 @@
             downloadLink.click();
         }
 
-         // Initialize visualization
+         // Function to initialize visualization
         function initPlot() {
             // Canvas initialization
-            d3.selectAll("svg").remove();
-            d3.selectAll(".tooltip").remove();
-            d3.selectAll("#div_click_tooltip").remove();
-            $("#upload_status").html("");
+            d3.selectAll("svg").remove(); // remove visualization panel
+            d3.selectAll(".tooltip").remove(); // remove mouseover tooltip, anchor point & minimum price point tooltip
+            d3.selectAll("#div_click_tooltip").remove(); // remove click tooltip
+            $("#upload_status").html(""); // remove upload status text
+			
+			// Click outside foreignObject will hide it
             $(document).mouseup(function (e) {
                 var container = $("#new_slope");
                 if (!container.is(e.target) // if the target of the click isn't the container...
@@ -717,7 +755,8 @@
                     container.hide();
                 }
             });
-
+			
+			// Initialization begins here
             $("#choose_x").val("Customer revenue");
             $("#choose_y").val("Absolute Px");
             $(".checkbox")[0].checked = true;
@@ -737,7 +776,11 @@
                 alert("y-axis not defined!");
             } else {
                 // Setting variables for visualization
-                var data = subsetData(rawDataObject.dataObject);
+                rawDataObject.currentData = subsetData(rawDataObject.dataObject); // subset data
+				if (rawDataObject.userLog == "") {
+					rawDataObject.userLog = Object.keys(rawDataObject.currentData[0]).toString().concat("\n"); // log data only if it doesn't exist
+				}
+				// General settings to be passed to plot functions
                 var settings = {};
                 settings.xName = $("#choose_x").val();
                 settings.yName = $("#choose_y").val();
@@ -745,30 +788,33 @@
                 settings.margin = rawDataObject.margin;
                 settings.width = rawDataObject.width;
                 settings.height = rawDataObject.height;
-                settings.xMax = data[0][settings.xName];
-                settings.yMin = data[0][settings.yName];
-                settings.yMax = data[0][settings.yName];
+                settings.xMax = rawDataObject.currentData[0][settings.xName];
+                settings.yMin = rawDataObject.currentData[0][settings.yName];
+                settings.yMax = rawDataObject.currentData[0][settings.yName];
+				
                 // Convert x and y to numerical
-                data.forEach(function (d) {
+                rawDataObject.currentData.forEach(function (d) {
                     d[settings.xName] = +d[settings.xName];
                     d[settings.yName] = +d[settings.yName];
                 });
+				
                 // Determine smallest and largest values for x and y
-                for (var i = 0; i < data.length; i++) {
-                    if (settings.xMax < data[i][settings.xName]) {
-                        settings.xMax = data[i][settings.xName];
+                for (var i = 0; i < rawDataObject.currentData.length; i++) {
+                    if (settings.xMax < rawDataObject.currentData[i][settings.xName]) {
+                        settings.xMax = rawDataObject.currentData[i][settings.xName];
                     }
-                    if (settings.yMax < data[i][settings.yName]) {
-                        settings.yMax = data[i][settings.yName];
+                    if (settings.yMax < rawDataObject.currentData[i][settings.yName]) {
+                        settings.yMax = rawDataObject.currentData[i][settings.yName];
                     }
-                    if (settings.yMin > data[i][settings.yName]) {
-                        settings.yMin = data[i][settings.yName];
+                    if (settings.yMin > rawDataObject.currentData[i][settings.yName]) {
+                        settings.yMin = rawDataObject.currentData[i][settings.yName];
                     }
                 }
                 rawDataObject.settings = settings;
-
-                scatterPlot(data, settings);
-                addLine(data, settings);
+				
+				// Visualization functions
+                scatterPlot(rawDataObject.currentData, settings);
+                addLine(rawDataObject.currentData, settings);
             }
         }
     </script>
@@ -804,7 +850,7 @@
             <select id=choose_y style="display:none"></select>
         </div>
         <div id=filter_checkbox style="width: 50%; float:left" onchange="initPlot()"></div>
-        <div id=tooltip_checkbox style="width: 50%; float:right" onchange="initPlot()"></div>
+        <div id=tooltip_checkbox style="width: 50%; float:right" onchange="updateTooltip()"></div>
     </div>
     <div id=data_visualization style="width: 80%; float:right">
         <h3>Data Visualization</h3>
