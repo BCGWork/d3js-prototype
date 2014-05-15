@@ -510,7 +510,7 @@
                 pointData.push(coord);
 
                 // Append grid line
-                d3.select("g")
+                d3.select("g").attr("class", "gridline")
                     .append("svg:line")
                     .attr("id", "line_" + i)
                     .attr("class", "grid_line")
@@ -653,7 +653,7 @@
 
             // Append horizontal lines
             for (var i = 0; i < pointData.length; i++) {
-                d3.select("g").append("svg:line")
+                d3.select("g").attr("class", "hline").append("svg:line")
                     .attr("id", "hline_" + i)
                     .attr("class", "hline")
                     .attr("x1", 0)
@@ -793,18 +793,9 @@
          // Tooltip mouseover
         function tooltipMouseover(d) {
             $("#div_tooltip").remove();
-            var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip");
+            var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip"),
+				tooltipText = tooltipUpdate(d);
             tooltip.transition().style("opacity", 0.62);
-            var tooltipDisplay = [],
-                tooltipText = "";
-            for (var i = 0; i < $(".tooltip_display").length; i++) {
-                if ($(".tooltip_display")[i].checked == true) {
-                    tooltipDisplay.push($(".tooltip_display")[i].value);
-                }
-            }
-            for (var i = 0; i < tooltipDisplay.length; i++) {
-                tooltipText += tooltipDisplay[i] + ": " + d[tooltipDisplay[i]] + "<br/>";
-            }
             tooltip.html(tooltipText)
                 .style("left", (d3.event.pageX + 20) + "px")
                 .style("top", (d3.event.pageY - 40) + "px");
@@ -823,6 +814,7 @@
                 .attr("id", pointID)
                 .attr("class", "click_tooltip");
             if (d3.select(this).attr("r") < 8) { // if the clicked point is not selected
+				var tooltipText = tooltipUpdate(d);
                 // Click select animation
                 d3.select(this)
                     .attr("r", 60)
@@ -833,18 +825,7 @@
                     .duration(600)
                     .attr("r", 8);
                 clickTooltip.transition().style("opacity", 0.62); // activate click tooltip
-                // Set values for click tooltip
-                var clickTooltipDisplay = [],
-                    clickTooltipText = "";
-                for (var i = 0; i < $(".tooltip_display").length; i++) {
-                    if ($(".tooltip_display")[i].checked == true) {
-                        clickTooltipDisplay.push($(".tooltip_display")[i].value);
-                    }
-                }
-                for (var i = 0; i < clickTooltipDisplay.length; i++) {
-                    clickTooltipText += clickTooltipDisplay[i] + ": " + d[clickTooltipDisplay[i]] + "<br/>";
-                }
-                clickTooltip.html(clickTooltipText)
+                clickTooltip.html(tooltipText)
                     .style("left", (d3.event.pageX + 20) + "px")
                     .style("top", (d3.event.pageY - 40) + "px");
             } else {
@@ -856,6 +837,21 @@
                 d3.selectAll("#" + pointID).transition().style("opacity", 0).remove(); // remove all tooltip divs for the selected point
             }
         }
+		
+		 // Update tooltip based on tooltip checkbox selection
+		function tooltipUpdate(d) {
+            var tooltipDisplay = [],
+                tooltipText = "";
+            for (var i = 0; i < $(".tooltip_display").length; i++) {
+                if ($(".tooltip_display")[i].checked == true) {
+                    tooltipDisplay.push($(".tooltip_display")[i].value);
+                }
+            }
+            for (var i = 0; i < tooltipDisplay.length; i++) {
+                tooltipText += tooltipDisplay[i] + ": " + d[tooltipDisplay[i]] + "<br/>";
+            }
+			return tooltipText;
+		}
 
          // Log user activity
         function logOutput() {
@@ -918,7 +914,7 @@
                     d3.selectAll(".anchor_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all anchor points
                 }
             });
-
+/*
             $("#choose_x").val("Customer revenue");
             $("#choose_y").val("Absolute Px");
             $(".checkbox")[0].checked = true;
@@ -931,7 +927,7 @@
             $(".tooltip_display")[3].checked = true;
             $(".tooltip_display")[4].checked = true;
             $(".tooltip_display")[6].checked = true;
-
+*/
             // Initialization begins here
             rawDataObject.currentData = subsetData(rawDataObject.dataObject);
             if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
