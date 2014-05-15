@@ -577,7 +577,7 @@
                 .style("opacity", 0.38)
                 .style("z-index", 8)
                 .on("mouseover", function (d) {
-                    var tooltipText = "Anchor Point<br/>" + xName + ": " + Math.round(Math.pow(10, d["x2"])) + "<br/>" + yName + ": " + d["y2"].toFixed(2);
+                    var tooltipText = "<u>Anchor Point</u><br/>" + xName + ": " + Math.round(Math.pow(10, d["x2"])) + "<br/>" + yName + ": " + d["y2"].toFixed(2);
                     anchorTooltip.transition().style("opacity", 0.62);
                     anchorTooltip.html(tooltipText)
                         .style("left", (d3.event.pageX - 80) + "px")
@@ -641,7 +641,7 @@
                 .style("opacity", 0.38)
                 .style("z-index", 7)
                 .on("mouseover", function (d) {
-                    var tooltipText = "Minimum Price Point<br/>" + xName + ": " + Math.round(Math.pow(10, d["x1"])) + "<br/>" + yName + ": " + d["y1"].toFixed(2);
+                    var tooltipText = "<u>Minimum Price Point</u><br/>" + xName + ": " + Math.round(Math.pow(10, d["x1"])) + "<br/>" + yName + ": " + d["y1"].toFixed(2);
                     minPriceTooltip.transition().style("opacity", 0.62);
                     minPriceTooltip.html(tooltipText)
                         .style("left", (d3.event.pageX - 80) + "px")
@@ -933,7 +933,7 @@
             if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
                 alert("Axis not defined!");
             } else if ((typeof(rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
-                $("#error_display").html("Insufficient data, check more filters!").show();
+                $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
                 setTimeout(function () {
                     $("#error_display").fadeOut("slow");
                 }, 500);
