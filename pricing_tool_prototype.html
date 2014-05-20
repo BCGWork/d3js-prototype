@@ -203,26 +203,32 @@
 
          // Define tooltip display variable
         function defineTooltip(dataHeader) {
-            $("#tooltip_checkbox").empty();
-            $("#tooltip_checkbox").append("<br/>");
-            $("#tooltip_checkbox").append("<div><b>Tooltip Settings</b></div>");
+            $(".tooltip_display").remove();
+			$("#tooltip_title").show();
             for (var i = 0; i < dataHeader.length; i++) {
                 if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
-                    var tooltipCheckBox = document.createElement("input"),
-                        tooltipDesc = document.createTextNode(dataHeader[i]),
-                        tooltipLabel = document.createElement("label");
-                    tooltipCheckBox.type = "checkbox";
-                    tooltipCheckBox.className = "tooltip_display";
-                    tooltipCheckBox.id = dataHeader[i];
-                    tooltipCheckBox.value = dataHeader[i];
-                    tooltipCheckBox.checked = false;
-                    tooltipLabel.appendChild(tooltipCheckBox);
-                    tooltipLabel.appendChild(tooltipDesc);
-                    document.getElementById("tooltip_checkbox").appendChild(tooltipLabel);
-                    document.getElementById("tooltip_checkbox").appendChild(document.createElement("br"));
+                    var tooltipLabel = $("<label/>").html(dataHeader[i])
+                        .prepend($("<input/>")
+                            .attr({
+                                type: "checkbox",
+                                id: dataHeader[i],
+                                class: "tooltip_display",
+                                value: dataHeader[i]
+                            }));
+                    $("#tooltip_checkbox").append(tooltipLabel).append("<br/>");
                 }
             }
+			$("#selectall_label").show();
+			$("#tooltip_selectall").show();
         }
+		
+		 // Enable select all feature for tooltips
+		function selectAll(source) {
+			var tooltipCheckbox = $(".tooltip_display");
+			for (var i = 0; i < tooltipCheckbox.length; i++) {
+				tooltipCheckbox[i].checked = source.checked;
+			}
+		}
 
          // Detect filters from data
         function defineFilters(dataHeader) {
@@ -264,18 +270,15 @@
 
                 // Create check boxes according to unique filter data
                 for (var k = 0; k < uniqueFilterData.length; k++) {
-                    var groupCheckBox = document.createElement("input"),
-                        checkBoxDesc = document.createTextNode(uniqueFilterData[k]),
-                        checkBoxLabel = document.createElement("label");
-                    groupCheckBox.type = "checkbox";
-                    groupCheckBox.className = "checkbox";
-                    groupCheckBox.id = filterName[i];
-                    groupCheckBox.value = uniqueFilterData[k]
-                    groupCheckBox.checked = false;
-                    checkBoxLabel.appendChild(groupCheckBox);
-                    checkBoxLabel.appendChild(checkBoxDesc);
-                    document.getElementById("filter_checkbox").appendChild(checkBoxLabel);
-                    document.getElementById("filter_checkbox").appendChild(document.createElement("br"));
+                    var checkBoxLabel = $("<label/>").html(uniqueFilterData[k])
+                        .prepend($("<input/>")
+                            .attr({
+                                type: "checkbox",
+                                id: filterName[i],
+                                class: "checkbox",
+                                value: uniqueFilterData[k]
+                            }));
+                    $("#filter_checkbox").append(checkBoxLabel).append("<br/>");
                 }
             }
         }
@@ -348,25 +351,25 @@
                     return d[xName];
                 },
                 xScale = d3.scale.log()
-					.domain([minimumX - minimumX * 0.1, xMax + xMax * 0.1])
-					.range([0, width])
-					.nice(),
+                .domain([minimumX - minimumX * 0.1, xMax + xMax * 0.1])
+                .range([0, width])
+                .nice(),
                 xAxis = d3.svg.axis()
-					.scale(xScale)
-					.orient("bottom")
-					.tickValues([100, 1000, 10000, 100000, 1000000, 10000000, 100000000])
-					.tickFormat(d3.format(","));
+                .scale(xScale)
+                .orient("bottom")
+                .tickValues([100, 1000, 10000, 100000, 1000000, 10000000, 100000000])
+                .tickFormat(d3.format(","));
             // set up y
             var yValue = function (d) {
                     return d[yName];
                 },
                 yScale = d3.scale.linear()
-					.domain([yMin - yMin * 0.1, yMax + yMax * 0.15])
-					.range([height, 0])
-					.nice(),
+                .domain([yMin - yMin * 0.1, yMax + yMax * 0.15])
+                .range([height, 0])
+                .nice(),
                 yAxis = d3.svg.axis()
-					.scale(yScale)
-					.orient("left");
+                .scale(yScale)
+                .orient("left");
             // set up fill color
             var zValue = function (d) {
                     return d[zName];
@@ -683,7 +686,7 @@
                 yName = settings.yName,
                 maximumX = settings.maximumX,
                 newSlope = 0,
-				tempData = data.slice();
+                tempData = data.slice();
             // Retrieve user input for new discount slope
             if (typeof ($("#new_slope").val()) == "undefined") {
                 newSlope = data[0][dSlopeName];
@@ -723,7 +726,7 @@
                             data[i][updateField[2]] = (tempData[i][yName] - tempData[i][updateField[1]]) / tempData[i][updateField[1]];
                         } else {
                             data[i][updateField[0]] = pointData[j]["intercept"] + pointData[j]["slope"] * log10(tempData[i][xName]);
-                            data[i][updateField[1]] = tempData[i][updateField[1]] / parseInt(data[i][capacity]);
+                            data[i][updateField[1]] = tempData[i][updateField[0]] / parseInt(data[i][capacity]);
                             data[i][updateField[2]] = (tempData[i][yName] - tempData[i][updateField[0]]) / tempData[i][updateField[0]];
                         }
                         data[i][dSlopeName] = newSlope;
@@ -738,12 +741,12 @@
             d3.selectAll("#anchor_tooltip").style("opacity", 0);
             // Initialize settings
             var selectedAnchorId = rawDataObject.selectedAnchorId,
-				data = rawDataObject.currentData,
+                data = rawDataObject.currentData,
                 pointData = rawDataObject.pointData,
                 xScale = rawDataObject.xScale,
                 yScale = rawDataObject.yScale,
                 settings = rawDataObject.settings,
-				anchorName = rawDataObject.anchorName,
+                anchorName = rawDataObject.anchorName,
                 xMax = settings.xMax;
             // Retrieve user input for new anchor coordinates	
             var newCoord = $("#new_anchor").val().split(","),
@@ -757,7 +760,7 @@
                     pointData[i]["y2"] = newAnchorY;
                 }
             }
-			
+
             // Update anchor point in visualization
             d3.select("#" + selectedAnchorId).transition()
                 .attr("cx", xScale(newAnchorX))
@@ -766,7 +769,7 @@
                 .style("opacity", 0.38);
             $("#new_anchor").hide();
             $("#new_anchor_text").hide();
-			
+
             // Update maximumX value according to user input
             var existAnchorMax = Math.pow(10, d3.max(extractValue(pointData, "x2")));
             if (Math.round(Math.max(xMax, existAnchorMax)) >= newAnchorX) {
@@ -774,8 +777,8 @@
             } else {
                 rawDataObject.settings.maximumX = xMax; // set maximumX to default value
             }
-			
-			// Update data
+
+            // Update data
             for (var i = 0; i < data.length; i++) {
                 for (var j = 0; j < pointData.length; j++) {
                     if (data[i]["Category"] == pointData[j]["category"]) {
@@ -784,7 +787,7 @@
                     }
                 }
             }
-			
+
             // Update line
             updateLine();
         }
@@ -794,7 +797,7 @@
         function tooltipMouseover(d) {
             $("#div_tooltip").remove();
             var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip"),
-				tooltipText = tooltipUpdate(d);
+                tooltipText = tooltipUpdate(d);
             tooltip.transition().style("opacity", 0.62);
             tooltip.html(tooltipText)
                 .style("left", (d3.event.pageX + 20) + "px")
@@ -814,7 +817,7 @@
                 .attr("id", pointID)
                 .attr("class", "click_tooltip");
             if (d3.select(this).attr("r") < 8) { // if the clicked point is not selected
-				var tooltipText = tooltipUpdate(d);
+                var tooltipText = tooltipUpdate(d);
                 // Click select animation
                 d3.select(this)
                     .attr("r", 60)
@@ -837,9 +840,9 @@
                 d3.selectAll("#" + pointID).transition().style("opacity", 0).remove(); // remove all tooltip divs for the selected point
             }
         }
-		
-		 // Update tooltip based on tooltip checkbox selection
-		function tooltipUpdate(d) {
+
+         // Update tooltip based on tooltip checkbox selection
+        function tooltipUpdate(d) {
             var tooltipDisplay = [],
                 tooltipText = "";
             for (var i = 0; i < $(".tooltip_display").length; i++) {
@@ -850,8 +853,17 @@
             for (var i = 0; i < tooltipDisplay.length; i++) {
                 tooltipText += tooltipDisplay[i] + ": " + d[tooltipDisplay[i]] + "<br/>";
             }
-			return tooltipText;
-		}
+            return tooltipText;
+        }
+
+         // Print grid windows
+        function printGrid(elementId) {
+			var gridContent = $("#data_visualization").html(),
+				printWindow = window.open();
+			$(printWindow.document.body).html(gridContent);
+			printWindow.print();
+			printWindow.close();
+        }
 
          // Log user activity
         function logOutput() {
@@ -914,7 +926,7 @@
                     d3.selectAll(".anchor_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all anchor points
                 }
             });
-/*
+            /*
             $("#choose_x").val("Customer revenue");
             $("#choose_y").val("Absolute Px");
             $(".checkbox")[0].checked = true;
@@ -932,14 +944,14 @@
             rawDataObject.currentData = subsetData(rawDataObject.dataObject);
             if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
                 alert("Axis not defined!");
-            } else if ((typeof(rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
+            } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
                 $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
                 setTimeout(function () {
                     $("#error_display").fadeOut("slow");
                 }, 500);
             } else {
-				// Link to data subset
-				var data = rawDataObject.currentData;
+                // Link to data subset
+                var data = rawDataObject.currentData;
                 // General settings to be passed to plot functions
                 var settings = {};
                 settings.xName = $("#choose_x").val();
@@ -999,7 +1011,7 @@
     <hr/>
     <div id=control_panel style="width: 20%; float:left">
         <h3>Control Panel</h3>
-        <button id=scatterplot_data onclick="initPlot()">Refresh</button>
+        <button id=scatterplot_data onclick="printGrid(data_visualization)">Print Grid</button>
         <br/>
         <button id=log_data onclick="logOutput()">Log Data</button>
         <output id=log_status></output>
@@ -1012,11 +1024,19 @@
             <select id=choose_y style="display:none"></select>
         </div>
         <div id=filter_checkbox style="width: 50%; float:left" onchange="initPlot()"></div>
-        <div id=tooltip_checkbox style="width: 50%; float:right"></div>
+        <div id=tooltip_checkbox style="width: 50%; float:right">
+			<br/>
+			<div id=tooltip_title style="display:none"><b>Tooltip Settings</b></div>
+			<label id=selectall_label style="display:none">
+				<input type="checkbox" id=tooltip_selectall style="display:none" onchange="selectAll(this)">
+				<font color="#5C5858"><em>Select / Deselect all</em></font>
+			</label>
+			<br/>
+		</div>
     </div>
     <div id=data_visualization style="width: 80%; float:right">
         <h3>Data Visualization</h3>
-		<output id=error_display></output>
+        <output id=error_display></output>
     </div>
 </body>
 
