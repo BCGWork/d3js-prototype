@@ -4,56 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Pricing Grid Visualization</title>
-
-    <style>
-        body {
-            font: 12px sans-serif;
-        }
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: black;
-            stroke-width: 2.5;
-            shape-rendering: crispEdges;
-        }
-        .tooltip {
-            position: absolute;
-            pointer-events: none;
-            z-index: 10;
-            background: #dddddd;
-            font: sans-serif;
-            font-weight: bold;
-            opacity: 0;
-            padding: 5px;
-            border: 2px solid #a1a1a1;
-            border-radius: 8px;
-        }
-        .click_tooltip {
-            position: absolute;
-            pointer-events: none;
-            z-index: 9;
-            background: #636363;
-            color: white;
-            font: sans-serif;
-            font-weight: bold;
-            opacity: 0;
-            padding: 5px;
-            border: 2px solid black;
-            border-radius: 8px;
-        }
-        .textbox {
-            position: absolute;
-            pointer-events: none;
-            z-index: 10;
-            font: sans-serif;
-            font-weight: bold;
-            opacity: 0;
-            padding: 5px;
-            border: 2px solid black;
-            border-radius: 8px;
-        }
-    </style>
-
+	<link rel="stylesheet" type="text/css" href="styles.css"></link>
     <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="jquery.csv-0.71.min.js"></script>
     <script type="text/javascript" src="d3.min.js"></script>
@@ -73,7 +24,7 @@
     <hr/>
     <div id=control_panel style="width: 20%; float:left">
         <h3>Control Panel</h3>
-        <button id=scatterplot_data onclick="printGrid(data_visualization)">Print Grid</button>
+        <button id=scatterplot_data onclick="printGrid(data_visualization)">View/Print Grid</button>
         <br/>
         <button id=log_data onclick="logOutput()">Log Data</button>
         <output id=log_status></output>
