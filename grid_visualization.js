@@ -933,7 +933,7 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-
+/*
     $("#choose_x").val("Customer revenue");
     $("#choose_y").val("Absolute Px");
     $(".checkbox")[0].checked = true;
@@ -946,7 +946,7 @@ function initPlot() {
     $(".tooltip_display")[3].checked = true;
     $(".tooltip_display")[4].checked = true;
     $(".tooltip_display")[6].checked = true;
-
+*/
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
