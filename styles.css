@@ -1,51 +1,52 @@
 body
 {
-	font: 12px sans-serif;
+	font:12px sans-serif;
 }
 .axis path,
 .axis line
 {
-	fill: none;
-	rendering: crispEdges;
-	stroke: black;
-	width: 2.5;
+	fill:none;
+	rendering:crispEdges;
+	stroke:black;
+	width:2.5;
+	zIndex:6;
 }
 .tooltip
 {
-	background: #dddddd;
-	border: 2px solid #a1a1a1;
-	border-radius: 8px;
-	events: none;
-	font: sans-serif;
-	font-weight: bold;
-	index: 10;
-	opacity: 0;
-	padding: 5px;
-	position: absolute;
+	background:#dddddd;
+	border:2px solid #a1a1a1;
+	border-radius:8px;
+	events:none;
+	font:sans-serif;
+	font-weight:bold;
+	opacity:0;
+	padding:5px;
+	position:absolute;
+	zIndex:5;
 }
 .click_tooltip
 {
-	background: #636363;
-	border: 2px solid black;
-	border-radius: 8px;
-	color: white;
-	events: none;
-	font: sans-serif;
-	font-weight: bold;
-	index: 9;
-	opacity: 0;
-	padding: 5px;
+	background:#636363;
+	border:2px solid black;
+	border-radius:8px;
+	color:white;
+	events:none;
+	font:sans-serif;
+	font-weight:bold;
+	opacity:0;
+	padding:5px;
 	position: absolute;
+	zIndex:5;
 }
 .textbox
 {
-	border: 2px solid black;
-	border-radius: 8px;
-	font: sans-serif;
-	font-weight: bold;
-	opacity: 0;
-	padding: 5px;
-	pointer-events: none;
-	position: absolute;
-	z-index: 10;
+	border:2px solid black;
+	border-radius:8px;
+	font:sans-serif;
+	font-weight:bold;
+	opacity:0;
+	padding:5px;
+	pointer-events:none;
+	position:absolute;
+	zIndex:10;
 }

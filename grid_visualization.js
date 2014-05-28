@@ -283,8 +283,8 @@ function scatterPlot(data) {
         xMax = settings.xMax,
         yMin = settings.yMin,
         yMax = settings.yMax,
-        minimumX = settings.minimumX;
-    maximumX = settings.maximumX;
+        minimumX = settings.minimumX,
+		maximumX = settings.maximumX;
     // set up x
     var xValue = function (d) {
             return d[xName];
@@ -364,10 +364,10 @@ function scatterPlot(data) {
         .attr("cy", function (d) {
             return yScale(yValue(d));
         })
+		.style("zIndex", 8)
         .style("fill", function (d) {
             return zColor(zValue(d));
         })
-        .style("z-index", 8)
         .on("click", tooltipClick)
         .on("mouseover", tooltipMouseover)
         .on("mouseout", tooltipMouseout);
@@ -376,7 +376,7 @@ function scatterPlot(data) {
     var legend = svg.selectAll(".legend")
         .data(zColor.domain())
         .enter().append("g")
-        .style("z-index", 1)
+        .style("zIndex", 1)
         .attr("class", "legend")
         .attr("transform", function (d, i) {
             return "translate(0," + i * 20 + ")";
@@ -433,9 +433,6 @@ function addLine(data) {
     // Set up fill color
     var zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-    // Add tooltip for grid lines
-    var lineTooltip = d3.select("#data_visualization").append("div").attr("id", "line_tooltip").attr("class", "tooltip");
-
     // Plot through for loop
     var pointData = [];
     for (var i = 0; i < lineVals.length; i++) {
@@ -463,7 +460,6 @@ function addLine(data) {
             .style("stroke", zColor(i))
             .style("stroke-width", 6)
             .style("opacity", 0.62)
-            .style("z-index", 6)
             .on("click", function (d) {
                 $(".externalObject").remove();
                 var divText = "";
@@ -510,6 +506,7 @@ function addAnchorPoints() {
         .attr("cy", function (d) {
             return yScale(d["y2"]);
         })
+		.style("zIndex", 8)
         .style("fill", function (d) {
             return zColor(d["fillName"]);
         })
@@ -517,16 +514,15 @@ function addAnchorPoints() {
         .style("stroke-width", "2px")
         .style("stroke-opacity", 0.38)
         .style("opacity", 0.38)
-        .style("z-index", 8)
         .on("mouseover", function (d) {
             var tooltipText = "<u>Anchor Point</u><br/>" + xName + ": " + format(Math.pow(10, d["x2"])) + "<br/>" + yName + ": " + d["y2"].toFixed(2);
-            anchorTooltip.transition().style("opacity", 0.62);
+            anchorTooltip.transition().style("opacity", 0.62).style("display", "block");
             anchorTooltip.html(tooltipText)
                 .style("left", (d3.event.pageX - 80) + "px")
                 .style("top", (d3.event.pageY + 20) + "px");
         })
         .on("mouseout", function (d) {
-            anchorTooltip.transition().style("opacity", 0);
+            anchorTooltip.transition().style("opacity", 0).style("display", "none");
         })
         .on("click", function (d) {
             d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
@@ -575,6 +571,7 @@ function addMinPricePoint() {
         .attr("cy", function (d) {
             return yScale(d["y1"]);
         })
+		.style("zIndex", 8)
         .style("fill", function (d) {
             return zColor(d["fillName"]);
         })
@@ -582,16 +579,15 @@ function addMinPricePoint() {
         .style("stroke-width", "2px")
         .style("stroke-opacity", 0.38)
         .style("opacity", 0.38)
-        .style("z-index", 7)
         .on("mouseover", function (d) {
             var tooltipText = "<u>Minimum Price Point</u><br/>" + xName + ": " + format(rawDataObject.minPriceX) + "<br/>" + yName + ": " + d["y1"].toFixed(2);
-            minPriceTooltip.transition().style("opacity", 0.62);
+            minPriceTooltip.transition().style("opacity", 0.62).style("display", "block");
             minPriceTooltip.html(tooltipText)
                 .style("left", (d3.event.pageX - 80) + "px")
                 .style("top", (d3.event.pageY + 20) + "px");
         })
         .on("mouseout", function (d) {
-            minPriceTooltip.transition().style("opacity", 0);
+            minPriceTooltip.transition().style("opacity", 0).style("display", "none");
         })
         .on("click", function (d) {
             d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
@@ -619,10 +615,10 @@ function addMinPricePoint() {
             .attr("y1", yScale(pointData[i]["y1"]))
             .attr("x2", xScale(Math.pow(10, pointData[i]["x1"])))
             .attr("y2", yScale(pointData[i]["y1"]))
+			.style("zIndex", 6)
             .style("stroke", zColor(i))
             .style("stroke-width", 6)
-            .style("opacity", 0.62)
-            .style("z-index", 7);
+            .style("opacity", 0.62);
     }
 }
 
@@ -707,60 +703,78 @@ function updateAnchor() {
         pointData = rawDataObject.pointData,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
+		minPriceX = rawDataObject.minPriceX,
         settings = rawDataObject.settings,
         anchorName = rawDataObject.anchorName,
-        xMax = settings.xMax;
+        xMax = settings.xMax,
+		yMin = settings.yMin,
+		yMax = settings.yMax;
     // Retrieve user input for new anchor coordinates	
     var newCoord = $("#new_anchor").val().split(","),
         newAnchorX = parseFloat(newCoord[0]),
         newAnchorY = parseFloat(newCoord[1]);
+	if (isNaN(newAnchorX) || isNaN(newAnchorY)) {
+		alert("Invalid input!");
+	} else if (newAnchorX <= minPriceX || newAnchorX > Math.pow(10, Math.ceil(log10(xMax))) || newAnchorY < 0.9 * yMin || newAnchorY > 1.1 * yMax) {
+		alert("Input out of bound!");
+	} else {
+		// Update coordinates of anchor points
+		for (var i = 0; i < pointData.length; i++) {
+			if (pointData[i]["fillName"] == rawDataObject.selectedAnchorId.substr(7)) {
+				pointData[i]["x2"] = log10(newAnchorX);
+				pointData[i]["y2"] = newAnchorY;
+			}
+		}
 
-    // Update coordinates of anchor points
-    for (var i = 0; i < pointData.length; i++) {
-        if (pointData[i]["fillName"] == rawDataObject.selectedAnchorId.substr(7)) {
-            pointData[i]["x2"] = log10(newAnchorX);
-            pointData[i]["y2"] = newAnchorY;
-        }
-    }
+		// Update anchor point in visualization
+		d3.select("#" + selectedAnchorId).transition()
+			.attr("cx", xScale(newAnchorX))
+			.attr("cy", yScale(newAnchorY))
+			.style("stroke-opacity", 0.38)
+			.style("opacity", 0.38);
+		$("#new_anchor").hide();
+		$("#new_anchor_text").hide();
 
-    // Update anchor point in visualization
-    d3.select("#" + selectedAnchorId).transition()
-        .attr("cx", xScale(newAnchorX))
-        .attr("cy", yScale(newAnchorY))
-        .style("stroke-opacity", 0.38)
-        .style("opacity", 0.38);
-    $("#new_anchor").hide();
-    $("#new_anchor_text").hide();
+		// Update maximumX value according to user input
+		var existAnchorMax = Math.pow(10, d3.max(extractValue(pointData, "x2")));
+		if (Math.round(Math.max(xMax, existAnchorMax)) >= newAnchorX) {
+			rawDataObject.settings.maximumX = Math.round(Math.max(xMax, existAnchorMax)); // set maximumX to newAnchorX if newAnchorX is greater
+		} else {
+			rawDataObject.settings.maximumX = xMax; // set maximumX to default value
+		}
 
-    // Update maximumX value according to user input
-    var existAnchorMax = Math.pow(10, d3.max(extractValue(pointData, "x2")));
-    if (Math.round(Math.max(xMax, existAnchorMax)) >= newAnchorX) {
-        rawDataObject.settings.maximumX = Math.round(Math.max(xMax, existAnchorMax)); // set maximumX to newAnchorX if newAnchorX is greater
-    } else {
-        rawDataObject.settings.maximumX = xMax; // set maximumX to default value
-    }
+		// Update data
+		for (var i = 0; i < data.length; i++) {
+			for (var j = 0; j < pointData.length; j++) {
+				if (data[i]["Category"] == pointData[j]["category"]) {
+					data[i][anchorName.x] = Math.pow(10, pointData[j]["x2"]);
+					data[i][anchorName.y] = pointData[j]["y2"];
+				}
+			}
+		}
 
-    // Update data
-    for (var i = 0; i < data.length; i++) {
-        for (var j = 0; j < pointData.length; j++) {
-            if (data[i]["Category"] == pointData[j]["category"]) {
-                data[i][anchorName.x] = Math.pow(10, pointData[j]["x2"]);
-                data[i][anchorName.y] = pointData[j]["y2"];
-            }
-        }
-    }
-
-    // Update line
-    updateLine();
+		// Update line
+		updateLine();
+	}
 }
 
 // Minimum price point interactivity
 function updateMinX() {
+	var minimumX = rawDataObject.settings.minimumX,
+		maximumX = rawDataObject.settings.maximumX,
+		lowerBound = Math.floor(1.1 * Math.pow(10, Math.floor(log10(minimumX)))),
+		upperBound = maximumX;
     // Hide minimum price point tooltip
     d3.selectAll("#min_price_tooltip").style("opacity", 0);
     // Retrieve user input for new minimum price point
     var newMinX = parseInt($("#new_minx").val());
-    rawDataObject.minPriceX = newMinX;
+	if (isNaN(newMinX)) {
+		alert("Invalid input!");
+	} else if ((parseInt(newMinX) < lowerBound) || (parseInt(newMinX) >= upperBound)) {
+		alert("Input out of bound!");
+	} else {
+		rawDataObject.minPriceX = newMinX;
+	}
     // Update line
     updateLine();
     // Hide minimum price update window
@@ -774,14 +788,14 @@ function tooltipMouseover(d) {
     $("#div_tooltip").remove();
     var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip"),
         tooltipText = tooltipUpdate(d);
-    tooltip.transition().style("opacity", 0.62);
+    tooltip.transition().style("opacity", 0.62).style("display", "block");
     tooltip.html(tooltipText)
         .style("left", (d3.event.pageX + 20) + "px")
         .style("top", (d3.event.pageY - 40) + "px");
 }
 // Tooltip mouseout
 function tooltipMouseout(d) {
-    d3.select("#div_tooltip").transition().style("opacity", 0);
+    d3.select("#div_tooltip").transition().style("opacity", 0).style("display", "none");
 }
 // Tooltip on click
 function tooltipClick(d) {
@@ -838,8 +852,7 @@ function tooltipUpdate(d) {
         }
     }
 	if (numChecked == 0) {
-		$(".click_tooltip").hide();
-		$(".tooltip").hide();
+		tooltipText = "No tooltip option selected!"
 	}
     return tooltipText;
 }
