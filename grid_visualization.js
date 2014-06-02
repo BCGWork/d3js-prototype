@@ -1,26 +1,3 @@
-// Declare global variables
-var rawDataObject = {};
-rawDataObject.hideList = ["filter", "anchor", "dslope"];
-rawDataObject.pxGB = "GB Px"
-rawDataObject.updateField = ["Absolute grid Px", "GB grid Px", "Grid deviation"];
-rawDataObject.anchorName = {
-    x: "Anchor revenue",
-    y: "Anchor Px"
-};
-rawDataObject.dSlopeName = ["DSlope"];
-rawDataObject.capacityName = ["Filter - Capacity"];
-rawDataObject.userLogCount = 0;
-rawDataObject.userLog = "";
-rawDataObject.minPriceX = 1000000;
-rawDataObject.margin = {
-    top: 50,
-    right: 150,
-    bottom: 50,
-    left: 50
-};
-rawDataObject.width = 1280 - rawDataObject.margin.left - rawDataObject.margin.right;
-rawDataObject.height = 800 - rawDataObject.margin.top - rawDataObject.margin.bottom;
-
 // Sort number
 function sortNumber(a, b) {
     return a - b;
@@ -36,6 +13,11 @@ function extractValue(object, key) {
     return object.map(function (el) {
         return el[key];
     });
+}
+
+// Find unique values in object array
+function detectUnique(value, index, self) {
+	return self.indexOf(value) == index;
 }
 
 // Calculate grid line
@@ -142,11 +124,11 @@ function defineY(dataHeader) {
 
 // Define tooltip display variable
 function defineTooltip(dataHeader) {
-    $(".tooltip_display").remove();
+    $(".tooltip_label").remove();
     $("#tooltip_title").show();
     for (var i = 0; i < dataHeader.length; i++) {
         if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
-            var tooltipLabel = $("<label/>").html(dataHeader[i])
+            var tooltipLabel = $("<label class=tooltip_label />").html(dataHeader[i])
                 .prepend($("<input/>")
                     .attr({
                         type: "checkbox",
@@ -154,11 +136,10 @@ function defineTooltip(dataHeader) {
                         class: "tooltip_display",
                         value: dataHeader[i]
                     }));
-            $("#tooltip_checkbox").append(tooltipLabel).append("<br/>");
+            $("#tooltip_checkbox").append(tooltipLabel).append("<br class=tooltip_label />");
         }
     }
     $("#selectall_label").show();
-    $("#tooltip_selectall").show();
 }
 
 // Enable select all feature for tooltips
@@ -191,14 +172,7 @@ function createCheckBox(data) {
         $("#filter_checkbox").append("<br/>");
         $("#filter_checkbox").append("<div class=" + filterName[i].substr(9) + "><b>" + filterName[i] + "</b></div>");
         // Extract unique data for each filter
-        var uniqueFilterData = [];
-        for (var j = 0; j < data.length; j++) {
-            if ($.inArray(data[j][filterName[i]], uniqueFilterData) == -1) {
-                uniqueFilterData.push(data[j][filterName[i]]);
-            } else {
-                continue;
-            }
-        }
+		var uniqueFilterData = extractValue(data, filterName[i]).filter(detectUnique);
 
         // Sort each filter options
         if (isNaN(parseFloat(uniqueFilterData[0]))) {
@@ -276,6 +250,7 @@ function scatterPlot(data) {
         height = rawDataObject.height,
         minPriceX = rawDataObject.minPriceX,
         settings = rawDataObject.settings,
+		customerName = rawDataObject.customerName,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
@@ -325,6 +300,7 @@ function scatterPlot(data) {
     var svg = d3.select("#data_visualization").append("svg")
         .attr("width", $("#data_visualization").width() - 20)
         .attr("height", height + margin.top + margin.bottom)
+		.on("dblclick", addAskPrice)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -356,6 +332,9 @@ function scatterPlot(data) {
     // scatter plot
     svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
         .data(data).enter().append("circle")
+		.attr("id", function (d) {
+			return ("dot_" + d[customerName]);
+		})
         .attr("class", "dot")
         .attr("r", 4.5)
         .attr("cx", function (d) {
@@ -364,7 +343,7 @@ function scatterPlot(data) {
         .attr("cy", function (d) {
             return yScale(yValue(d));
         })
-		.style("zIndex", 8)
+		.style("zIndex", 7)
         .style("fill", function (d) {
             return zColor(zValue(d));
         })
@@ -386,7 +365,8 @@ function scatterPlot(data) {
         .attr("y", -12)
         .attr("width", 18)
         .attr("height", 18)
-        .attr("fill", zColor);
+        .attr("fill", zColor)
+		.on("click", function(){alert("Detected");});
     legend.append("text")
         .attr("x", xScale(d3.max(data, xValue)) * 1.05 + 20)
         .attr("y", 0)
@@ -412,8 +392,8 @@ function addLine(data) {
         xMax = settings.xMax,
         yMin = settings.yMin,
         yMax = settings.yMax,
-        maximumX = settings.maximumX;
-    lineVals = [];
+        maximumX = settings.maximumX,
+		lineVals = [];
     // Determine unique category
     for (var i = 0; i < data.length; i++) {
         if ($.inArray(data[i][zName], extractValue(lineVals, "category")) == -1) {
@@ -463,7 +443,7 @@ function addLine(data) {
             .on("click", function (d) {
                 $(".externalObject").remove();
                 var divText = "";
-                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2) + "</b></div>"
+                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2) + "</b></div>";
                 divText += "<input type='text' id=new_slope class=externalTextbox placeholder='enter new discount slope' onchange=updateLine()></input>";
                 d3.select("svg").append("foreignObject")
                     .attr("class", "externalObject")
@@ -506,7 +486,7 @@ function addAnchorPoints() {
         .attr("cy", function (d) {
             return yScale(d["y2"]);
         })
-		.style("zIndex", 8)
+		.style("zIndex", 9)
         .style("fill", function (d) {
             return zColor(d["fillName"]);
         })
@@ -528,9 +508,9 @@ function addAnchorPoints() {
             d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
             $(".externalObject").remove();
             var divText = "";
-            divText += "<div id=new_anchor_text class=externalTextbox><b>Current Coordinates:<br/>"
-            divText += "(" + format(Math.pow(10, d["x2"])) + ", " + d["y2"].toFixed(2) + ")</b></div>"
-            divText += "<input type='text' id=new_anchor class=externalTextbox placeholder='enter new coordinates' onchange=updateAnchor()></input>"
+            divText += "<div id=new_anchor_text class=externalTextbox><b>Current Coordinates:<br/>";
+            divText += "(" + format(Math.pow(10, d["x2"])) + ", " + d["y2"].toFixed(2) + ")</b></div>";
+            divText += "<input type='text' id=new_anchor class=externalTextbox placeholder='enter new coordinates' onchange=updateAnchor()></input>";
             rawDataObject.selectedAnchorId = d3.select(this).attr("id");
             d3.select("svg").append("foreignObject")
                 .attr("class", "externalObject")
@@ -593,9 +573,9 @@ function addMinPricePoint() {
             d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
             $(".externalObject").remove();
             var divText = "";
-            divText += "<div id=new_minx_text class=externalTextbox><b>Current Minimum Price:<br/>"
-            divText += format(rawDataObject.minPriceX) + "</b></div>"
-            divText += "<input type='text' id=new_minx class=externalTextbox placeholder='enter new minimum price' onchange=updateMinX()></input>"
+            divText += "<div id=new_minx_text class=externalTextbox><b>Current Minimum Price:<br/>";
+            divText += format(rawDataObject.minPriceX) + "</b></div>";
+            divText += "<input type='text' id=new_minx class=externalTextbox placeholder='enter new minimum price' onchange=updateMinX()></input>";
             d3.select("svg").append("foreignObject")
                 .attr("class", "externalObject")
                 .attr("x", (d3.mouse(this)[0] - 20) + "px")
@@ -615,7 +595,7 @@ function addMinPricePoint() {
             .attr("y1", yScale(pointData[i]["y1"]))
             .attr("x2", xScale(Math.pow(10, pointData[i]["x1"])))
             .attr("y2", yScale(pointData[i]["y1"]))
-			.style("zIndex", 6)
+			.style("zIndex", 4)
             .style("stroke", zColor(i))
             .style("stroke-width", 6)
             .style("opacity", 0.62);
@@ -858,7 +838,7 @@ function tooltipUpdate(d) {
 }
 
 // Print grid windows
-function printGrid(elementId) {
+function printGrid() {
     var width = $("svg").attr("width"), // get svg width
         height = $("svg").attr("height"), // get svg height
         gridContent = $("svg").html(), // get svg content
@@ -933,25 +913,28 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-/*
+
     $("#choose_x").val("Customer revenue");
     $("#choose_y").val("Absolute Px");
     $(".checkbox")[0].checked = true;
     $(".checkbox")[1].checked = true;
     $(".checkbox")[2].checked = true;
-    $(".checkbox")[5].checked = true;
-    $(".checkbox")[10].checked = true;
-    $(".checkbox")[11].checked = true;
+	$(".checkbox")[3].checked = true;
+    $(".checkbox")[4].checked = true;
+    $(".checkbox")[7].checked = true;
+    $(".checkbox")[12].checked = true;
+	$(".checkbox")[13].checked = true;
     $(".tooltip_display")[2].checked = true;
     $(".tooltip_display")[3].checked = true;
     $(".tooltip_display")[4].checked = true;
     $(".tooltip_display")[6].checked = true;
-*/
+
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
         alert("Axis not defined!");
     } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
+		$("#customize_field").hide();
         $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
         setTimeout(function () {
             $("#error_display").fadeOut("slow");
@@ -989,6 +972,7 @@ function initPlot() {
         rawDataObject.settings = settings;
 
         // Call visualization functions
+		detectCustomer();
         scatterPlot(data);
         addLine(data);
         addAnchorPoints();
