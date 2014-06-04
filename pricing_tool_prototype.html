@@ -22,7 +22,6 @@
 		rawDataObject.capacityName = "Filter - Capacity";
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
-        rawDataObject.quarterName = "Filter - Quarter";
         rawDataObject.userLogCount = 0;
         rawDataObject.userLog = "";
         rawDataObject.minPriceX = 1000000;
@@ -81,6 +80,7 @@
 		<output id=error_display></output>
 		<div id=customize_field style="display:none">
 			<select id=customer_filter onchange="filterCustomer()"></select>
+			<button id=click_all onclick="clickAll()">Click All</button>
 		</div>
     </div>
 </body>

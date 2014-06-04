@@ -300,7 +300,6 @@ function scatterPlot(data) {
     var svg = d3.select("#data_visualization").append("svg")
         .attr("width", $("#data_visualization").width() - 20)
         .attr("height", height + margin.top + margin.bottom)
-		.on("dblclick", addAskPrice)
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -356,24 +355,30 @@ function scatterPlot(data) {
         .data(zColor.domain())
         .enter().append("g")
         .style("zIndex", 1)
+		.attr("id", function (d) {
+			var idSuffix = d.split("; ").join("_").split("'").join("");
+			return "legend_" + idSuffix;
+		})
         .attr("class", "legend")
         .attr("transform", function (d, i) {
-            return "translate(0," + i * 20 + ")";
+            return "translate(0," + i * 21 + ")";
         });
     legend.append("rect")
         .attr("x", xScale(d3.max(data, xValue)) * 1.05)
         .attr("y", -12)
         .attr("width", 18)
         .attr("height", 18)
-        .attr("fill", zColor)
-		.on("click", function(){alert("Detected");});
+        .attr("fill", zColor);
     legend.append("text")
-        .attr("x", xScale(d3.max(data, xValue)) * 1.05 + 20)
+        .attr("x", xScale(d3.max(data, xValue)) * 1.05 + 25)
         .attr("y", 0)
         .style("text-anchor", "start")
         .text(function (d) {
             return d;
-        })
+        });
+	legend.on("click", addAskPrice);
+	legend.on("mouseover", function () {d3.select(this).style("stroke-width", 1.5).style("stroke", "black").style("kerning", 1);})
+	legend.on("mouseout", function () {d3.select(this).style("stroke-width", 0).style("kerning", 0);});
 }
 
 // Add grid lines
@@ -412,6 +417,9 @@ function addLine(data) {
 
     // Set up fill color
     var zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+	
+	// Initialize line group
+	d3.select("g").append("g").attr("class", "gridlines");
 
     // Plot through for loop
     var pointData = [];
@@ -429,7 +437,7 @@ function addLine(data) {
         pointData.push(coord);
 
         // Append grid line
-        d3.select("g").attr("class", "gridline")
+        d3.select(".gridlines")
             .append("svg:line")
             .attr("id", "line_" + i)
             .attr("class", "grid_line")
@@ -587,8 +595,9 @@ function addMinPricePoint() {
         });
 
     // Append horizontal lines
+	d3.select("g").append("g").attr("class", "horizontallines");
     for (var i = 0; i < pointData.length; i++) {
-        d3.select("g").attr("class", "hline").append("svg:line")
+        d3.select(".horizontallines").append("svg:line")
             .attr("id", "hline_" + i)
             .attr("class", "hline")
             .attr("x1", 0)
@@ -781,6 +790,8 @@ function tooltipMouseout(d) {
 function tooltipClick(d) {
     // Identify the ID of selected point
     var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
+	// Identify offset of screen to svg
+	var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
     // Initialize tooltip for clicked points
     var clickTooltip = d3.select("#div_click_tooltip")
         .append("div")
@@ -799,10 +810,10 @@ function tooltipClick(d) {
             .attr("r", 8);
         clickTooltip.transition().style("opacity", 0.62); // activate click tooltip
         clickTooltip.html(tooltipText)
-            .style("left", (d3.event.pageX + 20) + "px")
-            .style("top", (d3.event.pageY - 40) + "px");
+            .style("left", (window.pageXOffset + matrix.e + 15) + "px")
+            .style("top", (window.pageYOffset + matrix.f - 30) + "px");
     } else {
-        // Deselect the clciked point
+        // Deselect the clicked point
         d3.select(this)
             .transition()
             .attr("r", 4.5)
@@ -913,7 +924,7 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-
+/*
     $("#choose_x").val("Customer revenue");
     $("#choose_y").val("Absolute Px");
     $(".checkbox")[0].checked = true;
@@ -928,7 +939,7 @@ function initPlot() {
     $(".tooltip_display")[3].checked = true;
     $(".tooltip_display")[4].checked = true;
     $(".tooltip_display")[6].checked = true;
-
+*/
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
