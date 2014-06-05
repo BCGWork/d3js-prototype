@@ -924,7 +924,7 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-/*
+
     $("#choose_x").val("Customer revenue");
     $("#choose_y").val("Absolute Px");
     $(".checkbox")[0].checked = true;
@@ -939,7 +939,7 @@ function initPlot() {
     $(".tooltip_display")[3].checked = true;
     $(".tooltip_display")[4].checked = true;
     $(".tooltip_display")[6].checked = true;
-*/
+
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
@@ -963,13 +963,7 @@ function initPlot() {
         data.forEach(function (d) {
             d[settings.xName] = +d[settings.xName];
             d[settings.yName] = +d[settings.yName];
-            d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x];
-            d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y];
-            // Update anchorY if y-axis represents Price per capacity
-            if (settings.yName == rawDataObject.pxGB) {
-                d["AnchorPerGB"] = d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName];
-            }
-        });
+		});
 
         // Determine smallest and largest values for x and y
         settings.xMin = d3.min(extractValue(data, settings.xName));
@@ -977,6 +971,25 @@ function initPlot() {
         settings.yMin = d3.min(extractValue(data, settings.yName));
         settings.yMax = d3.max(extractValue(data, settings.yName));
         settings.minimumX = Math.min(settings.xMin, rawDataObject.minPriceX);
+		
+		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique);
+		data.forEach(function (d) {
+			d[rawDataObject.dSlopeName] = typeof(d[rawDataObject.dSlopeName]) == "undefined" ? -0.05 : d[rawDataObject.dSlopeName];
+			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? settings.xMax : d[rawDataObject.anchorName.x];
+			for (var i = 0; i < uniqueCat.length; i++) {
+				if (d[settings.zName] == uniqueCat[i]) {
+					var tempValue = settings.yMin + i * (settings.yMax - settings.yMin) / uniqueCat.length;
+					d[rawDataObject.anchorName.y] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y];
+				}
+			}
+			d[rawDataObject.dSlopeName] =+ d[rawDataObject.dSlopeName];
+            d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x];
+            d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y];
+            // Update anchorY if y-axis represents Price per capacity
+            if (settings.yName == rawDataObject.pxGB) {
+                d["AnchorPerGB"] = d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName];
+            }
+		});
         settings.maximumX = Math.max(settings.xMax, d3.max(extractValue(data, rawDataObject.anchorName.x)));
 
         // Save settings to global
