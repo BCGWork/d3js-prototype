@@ -31,7 +31,6 @@ jQuery.fn.d3Click = function () {
 		e.dispatchEvent(evt);
 	});
 };
-
 function clickAll() {
 	$(".dot").d3Click();
 }

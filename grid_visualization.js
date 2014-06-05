@@ -941,7 +941,7 @@ function initPlot() {
     $(".tooltip_display")[6].checked = true;
 */
     // Initialization begins here
-    rawDataObject.currentData = subsetData(rawDataObject.dataObject);
+    rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
         alert("Axis not defined!");
     } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
