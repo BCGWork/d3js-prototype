@@ -22,7 +22,6 @@
 		rawDataObject.capacityName = "Filter - Capacity";
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
-        rawDataObject.userLogCount = 0;
         rawDataObject.userLog = "";
         rawDataObject.minPriceX = 1000000;
         rawDataObject.margin = {
@@ -39,8 +38,11 @@
 </head>
 
 <body>
-    <h1 id=title>Pricing Visualization Tool Prototype <sub><code>v0.1</code></sub></h1>
-    <h4 id=contact_author><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top">Contact Author</a></h4>
+    <h1 id=title>Pricing Visualization Tool Prototype <sub><code>v0.2</code></sub></h1>
+    <h4 id=contact_author><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top">Contact Author</a>
+		&nbsp &nbsp &nbsp
+		<button id=change_log onclick="changeLog()">Change Log</button>
+	</h4>
     <hr/>
     <div id=user_inputs>
         <h3>Data Input</h3>

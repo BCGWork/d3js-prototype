@@ -451,7 +451,7 @@ function addLine(data) {
             .on("click", function (d) {
                 $(".externalObject").remove();
                 var divText = "";
-                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2) + "</b></div>";
+                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(2) + "</b></div>";
                 divText += "<input type='text' id=new_slope class=externalTextbox placeholder='enter new discount slope' onchange=updateLine()></input>";
                 d3.select("svg").append("foreignObject")
                     .attr("class", "externalObject")
@@ -907,6 +907,28 @@ function exportToText() {
     downloadLink.click();
 }
 
+// 
+function changeLog() {
+	var changeLogText = "<h3>Change Log</h3>";
+	
+	var v0_20Change = "<h4><u>v0.2</u></h4><ol>";
+	v0_20Change += "<li>Enabled customer filter feature to view selected customers.</li>";
+	v0_20Change += "<li>Enabled &quot;click all&quot; button for all customers.</li>";
+	v0_20Change += "<li>Enabled addition of ask price by clicking on legend.</li>";
+	v0_20Change += "<li>Added support for missing discount slope and anchor points in data.</li>";
+	v0_20Change += "<li>Remade &quot;Print&quot; button.</li>";
+	v0_20Change += "<li>Fixed a bug when no tooltip option is selected, a dot will appear.</li>";
+	v0_20Change += "<li>Added support for typo and out-of-bound ranges in input boxes.</li>";
+	v0_20Change += "<li>Fixed a bug causing difficulties to click on points.</li>";
+	v0_20Change += "<li>Extended expiration date to 2014-06-15.</li>";
+	v0_20Change += "<li>Some other minor bug fixes.</li>";
+	v0_20Change += "</ol>";
+	
+	changeLogText += v0_20Change;
+	var changeLogWindow = window.open("", "MsgWindow", "width=400, height=600");
+	changeLogWindow.document.write(changeLogText);
+}
+
 // Function to initialize visualization
 function initPlot() {
     // Canvas initialization
@@ -924,9 +946,10 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-
+/*
     $("#choose_x").val("Customer revenue");
-    $("#choose_y").val("Absolute Px");
+	$("#choose_y").val("Absolute Px");
+//    $("#choose_y").val("GB Px");
     $(".checkbox")[0].checked = true;
     $(".checkbox")[1].checked = true;
     $(".checkbox")[2].checked = true;
@@ -935,11 +958,10 @@ function initPlot() {
     $(".checkbox")[7].checked = true;
     $(".checkbox")[12].checked = true;
 	$(".checkbox")[13].checked = true;
-    $(".tooltip_display")[2].checked = true;
     $(".tooltip_display")[3].checked = true;
-    $(".tooltip_display")[4].checked = true;
-    $(".tooltip_display")[6].checked = true;
-
+//    $(".tooltip_display")[4].checked = true;
+//    $(".tooltip_display")[6].checked = true;
+*/
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
@@ -972,40 +994,45 @@ function initPlot() {
         settings.yMax = d3.max(extractValue(data, settings.yName));
         settings.minimumX = Math.min(settings.xMin, rawDataObject.minPriceX);
 		
-		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique);
+		// Generate discount slope and anchor points if missing, otherwise convert to numerical values
+		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique); // extract unique categories for data subset
 		data.forEach(function (d) {
-			d[rawDataObject.dSlopeName] = typeof(d[rawDataObject.dSlopeName]) == "undefined" ? -0.05 : d[rawDataObject.dSlopeName];
-			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? settings.xMax : d[rawDataObject.anchorName.x];
+			d[rawDataObject.dSlopeName] = typeof(d[rawDataObject.dSlopeName]) == "undefined" ? -0.05 : d[rawDataObject.dSlopeName]; // set discount to -0.05 if missing
+			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? settings.xMax : d[rawDataObject.anchorName.x]; // set anchor x to be maximum of x
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
-					var tempValue = settings.yMin + i * (settings.yMax - settings.yMin) / uniqueCat.length;
-					d[rawDataObject.anchorName.y] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y];
+					var tempValue = settings.yMin + i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
+					if (settings.yName == rawDataObject.pxGB) { // if y represents price per capacity ...
+						d["AnchorPerGB"] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y]; // set anchor y if missing
+						d["AnchorPerGB"] = !isNaN(d[rawDataObject.anchorName.y]) ? (d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName]) : tempValue; // set anchor y according to actual price 
+					} else { // if y represents actual price
+						d[rawDataObject.anchorName.y] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y]; // set anchor y if missing
+					}
 				}
 			}
-			d[rawDataObject.dSlopeName] =+ d[rawDataObject.dSlopeName];
-            d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x];
-            d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y];
-            // Update anchorY if y-axis represents Price per capacity
-            if (settings.yName == rawDataObject.pxGB) {
-                d["AnchorPerGB"] = d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName];
-            }
+			d[rawDataObject.dSlopeName] =+ d[rawDataObject.dSlopeName]; // convert discount slope to numerical
+            d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x]; // convert anchor x to numerical
+            d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y]; // convert anchor y to numerical
 		});
-        settings.maximumX = Math.max(settings.xMax, d3.max(extractValue(data, rawDataObject.anchorName.x)));
+        settings.maximumX = Math.max(settings.xMax, d3.max(extractValue(data, rawDataObject.anchorName.x))); // maximum of data x and anchor x
 
         // Save settings to global
         rawDataObject.settings = settings;
-
+		
         // Call visualization functions
 		detectCustomer();
         scatterPlot(data);
         addLine(data);
         addAnchorPoints();
         addMinPricePoint();
-
+		
         // To prevent data overwrite, log data only if it doesn't exist
-        if ((rawDataObject.userLog == "") && (d3.selectAll(".dot")[0].length > 0)) {
+        if ((rawDataObject.userLog == "") && ($(".dot").length > 0)) {
             var finalHeader = Object.keys(data[0]); // extract column headers
-            finalHeader.splice(finalHeader.indexOf("Category")); // remove "category" and "AnchorPerGB" key-value pair generated for the purpose of linkage
+            finalHeader.splice(finalHeader.indexOf("Category"), 1); // remove "category" key-value pair generated for the purpose of linkage
+			if ($.inArray("AnchorPerGB", finalHeader) > -1) {
+				finalHeader.splice(finalHeader.indexOf("AnchorPerGB"), 1); // remove "AnchorPerGB" key-value pair generated for the purpose of linkage
+			}
             rawDataObject.userLog = finalHeader.toString().concat("\n"); // convert array to comma separated string
         }
     }
