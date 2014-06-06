@@ -356,7 +356,7 @@ function scatterPlot(data) {
         .enter().append("g")
         .style("zIndex", 1)
 		.attr("id", function (d) {
-			var idSuffix = d.split("; ").join("_").split("'").join("");
+			var idSuffix = d.replace(/'|;| /g, "");
 			return "legend_" + idSuffix;
 		})
         .attr("class", "legend")
@@ -907,19 +907,20 @@ function exportToText() {
     downloadLink.click();
 }
 
-// 
+// Add change log button
 function changeLog() {
 	var changeLogText = "<h3>Change Log</h3>";
 	
 	var v0_20Change = "<h4><u>v0.2</u></h4><ol>";
 	v0_20Change += "<li>Enabled customer filter feature to view selected customers.</li>";
-	v0_20Change += "<li>Enabled &quot;click all&quot; button for all customers.</li>";
+	v0_20Change += "<li>Enabled &quot;Click All&quot; button for all customers.</li>";
 	v0_20Change += "<li>Enabled addition of ask price by clicking on legend.</li>";
 	v0_20Change += "<li>Added support for missing discount slope and anchor points in data.</li>";
 	v0_20Change += "<li>Remade &quot;Print&quot; button.</li>";
 	v0_20Change += "<li>Fixed a bug when no tooltip option is selected, a dot will appear.</li>";
 	v0_20Change += "<li>Added support for typo and out-of-bound ranges in input boxes.</li>";
 	v0_20Change += "<li>Fixed a bug causing difficulties to click on points.</li>";
+	v0_20Change += "<li>Added &quot;Change Log&quot; button.</li>";
 	v0_20Change += "<li>Extended expiration date to 2014-06-15.</li>";
 	v0_20Change += "<li>Some other minor bug fixes.</li>";
 	v0_20Change += "</ol>";

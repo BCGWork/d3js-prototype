@@ -114,7 +114,7 @@ function updateAskPrice() {
         askPricePoint.transition().duration(1000).ease("elastic")
             .attr("x", xScale(newAskX))
             .attr("y", yScale(newAskY))
-            .style("fill", $("#legend_" + askPriceCategory.split("; ").join("_").split("'").join("") + " rect").attr("fill"))
+            .style("fill", $("#legend_" + askPriceCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
             .style("stroke", "black")
             .style("stroke-width", "2px");
         $("#new_ask_price").hide();
