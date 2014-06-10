@@ -249,29 +249,35 @@ function scatterPlot(data) {
         width = rawDataObject.width,
         height = rawDataObject.height,
         minPriceX = rawDataObject.minPriceX,
-        settings = rawDataObject.settings,
 		customerName = rawDataObject.customerName,
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX,
+		settings = rawDataObject.settings,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
-        xMin = settings.xMin,
-        xMax = settings.xMax,
         yMin = settings.yMin,
-        yMax = settings.yMax,
-        minimumX = settings.minimumX,
-		maximumX = settings.maximumX;
+        yMax = settings.yMax;
+
+	var xRange = [],
+		minRage = minRangeX;
+	while (minRage <= maxRangeX) {
+		xRange.push(minRage);
+		minRage *= 10;
+	}
+	
     // set up x
     var xValue = function (d) {
             return d[xName];
         },
         xScale = d3.scale.log()
-        .domain([minimumX - minimumX * 0.1, xMax + xMax * 0.1])
+        .domain([minRangeX, maxRangeX])
         .range([0, width])
         .nice(),
         xAxis = d3.svg.axis()
         .scale(xScale)
         .orient("bottom")
-        .tickValues([100, 1000, 10000, 100000, 1000000, 10000000, 100000000])
+        .tickValues(xRange)
         .tickFormat(d3.format(","));
     // set up y
     var yValue = function (d) {
@@ -300,11 +306,13 @@ function scatterPlot(data) {
     var svg = d3.select("#data_visualization").append("svg")
         .attr("width", $("#data_visualization").width() - 20)
         .attr("height", height + margin.top + margin.bottom)
+		.attr("overflow", "auto")
         .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     // x-axis
     svg.append("g")
+		.attr("id", "xaxis")
         .attr("class", "axis")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis)
@@ -318,6 +326,7 @@ function scatterPlot(data) {
 
     // y-axis
     svg.append("g")
+		.attr("id", "yaxis")
         .attr("class", "axis")
         .call(yAxis)
         .append("text")
@@ -327,6 +336,16 @@ function scatterPlot(data) {
         .style("text-anchor", "end")
         .style("font-weight", "bold")
         .text(yName);
+	
+	// Record minimum and maximum range of y and pass to global
+	var yRange = [];
+	$.each($("#yaxis text"),function(){
+		if (!isNaN($(this).html())) {
+			yRange.push(parseFloat(($(this).html())));
+		}
+	});
+	rawDataObject.minRangeY = d3.min(yRange);
+	rawDataObject.maxRangeY = d3.max(yRange);
 
     // scatter plot
     svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
@@ -364,13 +383,13 @@ function scatterPlot(data) {
             return "translate(0," + i * 21 + ")";
         });
     legend.append("rect")
-        .attr("x", xScale(d3.max(data, xValue)) * 1.05)
+        .attr("x", xScale(maxRangeX) * 0.8)
         .attr("y", -12)
         .attr("width", 18)
         .attr("height", 18)
         .attr("fill", zColor);
     legend.append("text")
-        .attr("x", xScale(d3.max(data, xValue)) * 1.05 + 25)
+        .attr("x", xScale(maxRangeX) * 0.8 + 25)
         .attr("y", 0)
         .style("text-anchor", "start")
         .text(function (d) {
@@ -389,15 +408,12 @@ function addLine(data) {
         minPriceX = rawDataObject.minPriceX,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX,
         settings = rawDataObject.settings,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
-        xMin = settings.xMin,
-        xMax = settings.xMax,
-        yMin = settings.yMin,
-        yMax = settings.yMax,
-        maximumX = settings.maximumX,
 		lineVals = [];
     // Determine unique category
     for (var i = 0; i < data.length; i++) {
@@ -430,7 +446,7 @@ function addLine(data) {
             lineVals[i].anchorY = lineVals[i].anchorYpx;
         }
         // Calculate coordinates, slope and intercept
-        var coord = findLine(lineVals[i].dSlope * lineVals[i].anchorY, log10(minPriceX), log10(lineVals[i].anchorX), lineVals[i].anchorY, log10(maximumX * 1.1));
+        var coord = findLine(lineVals[i].dSlope * lineVals[i].anchorY, log10(minPriceX), log10(lineVals[i].anchorX), lineVals[i].anchorY, log10(maxRangeX * 0.5));
         lineVals[i].intercept = coord.intercept;
         coord["fillName"] = "group_" + i;
         coord["category"] = lineVals[i]["category"];
@@ -443,7 +459,7 @@ function addLine(data) {
             .attr("class", "grid_line")
             .attr("x1", xScale(Math.pow(10, coord.x1)))
             .attr("y1", yScale(coord.y1))
-            .attr("x2", xScale(maximumX * 1.1))
+            .attr("x2", xScale(maxRangeX * 0.5))
             .attr("y2", yScale(coord.y2Max))
             .style("stroke", zColor(i))
             .style("stroke-width", 6)
@@ -621,22 +637,23 @@ function updateLine() {
         capacity = rawDataObject.capacityName,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX,
         settings = rawDataObject.settings,
         minPriceX = rawDataObject.minPriceX,
         xName = settings.xName,
         yName = settings.yName,
-        maximumX = settings.maximumX,
         newSlope = 0,
         tempData = data.slice();
     // Retrieve user input for new discount slope
-    if (typeof ($("#new_slope").val()) == "undefined") {
+	if (typeof($("#new_slope").val()) == "undefined") {
         newSlope = data[0][dSlopeName];
     } else {
         newSlope = parseFloat($("#new_slope").val());
     }
     // Update kinked lines and minimum price point
     for (var i = 0; i < pointData.length; i++) {
-        var coord = findLine(newSlope * pointData[i]["y2"], log10(minPriceX), pointData[i]["x2"], pointData[i]["y2"], log10(maximumX * 1.1));
+        var coord = findLine(newSlope * pointData[i]["y2"], log10(minPriceX), pointData[i]["x2"], pointData[i]["y2"], log10(maxRangeX * 0.5));
         var newY1 = coord.intercept + coord.slope * coord.x1;
         pointData[i]["y1"] = newY1;
         pointData[i]["intercept"] = coord.intercept;
@@ -645,7 +662,7 @@ function updateLine() {
         d3.select("#line_" + i).transition()
             .attr("x1", xScale(minPriceX))
             .attr("y1", yScale(newY1))
-            .attr("x2", xScale(maximumX * 1.1))
+            .attr("x2", xScale(maxRangeX * 0.5))
             .attr("y2", yScale(coord.y2Max));
         // Update minimum price points
         d3.select("#minx_group_" + i).transition()
@@ -693,18 +710,19 @@ function updateAnchor() {
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
 		minPriceX = rawDataObject.minPriceX,
-        settings = rawDataObject.settings,
-        anchorName = rawDataObject.anchorName,
-        xMax = settings.xMax,
-		yMin = settings.yMin,
-		yMax = settings.yMax;
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX,
+		minRangeY = rawDataObject.minRangeY,
+		maxRangeY = rawDataObject.maxRangeY,
+		anchorName = rawDataObject.anchorName;
+
     // Retrieve user input for new anchor coordinates	
     var newCoord = $("#new_anchor").val().split(","),
         newAnchorX = parseFloat(newCoord[0]),
         newAnchorY = parseFloat(newCoord[1]);
 	if (isNaN(newAnchorX) || isNaN(newAnchorY)) {
 		alert("Invalid input!");
-	} else if (newAnchorX <= minPriceX || newAnchorX > Math.pow(10, Math.ceil(log10(xMax))) || newAnchorY < 0.9 * yMin || newAnchorY > 1.1 * yMax) {
+	} else if (newAnchorX <= minRangeX || newAnchorX > maxRangeX || newAnchorY < minRangeY || newAnchorY > maxRangeY) {
 		alert("Input out of bound!");
 	} else {
 		// Update coordinates of anchor points
@@ -724,14 +742,6 @@ function updateAnchor() {
 		$("#new_anchor").hide();
 		$("#new_anchor_text").hide();
 
-		// Update maximumX value according to user input
-		var existAnchorMax = Math.pow(10, d3.max(extractValue(pointData, "x2")));
-		if (Math.round(Math.max(xMax, existAnchorMax)) >= newAnchorX) {
-			rawDataObject.settings.maximumX = Math.round(Math.max(xMax, existAnchorMax)); // set maximumX to newAnchorX if newAnchorX is greater
-		} else {
-			rawDataObject.settings.maximumX = xMax; // set maximumX to default value
-		}
-
 		// Update data
 		for (var i = 0; i < data.length; i++) {
 			for (var j = 0; j < pointData.length; j++) {
@@ -749,17 +759,16 @@ function updateAnchor() {
 
 // Minimum price point interactivity
 function updateMinX() {
-	var minimumX = rawDataObject.settings.minimumX,
-		maximumX = rawDataObject.settings.maximumX,
-		lowerBound = Math.floor(1.1 * Math.pow(10, Math.floor(log10(minimumX)))),
-		upperBound = maximumX;
+	var minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX;
+
     // Hide minimum price point tooltip
     d3.selectAll("#min_price_tooltip").style("opacity", 0);
     // Retrieve user input for new minimum price point
     var newMinX = parseInt($("#new_minx").val());
 	if (isNaN(newMinX)) {
 		alert("Invalid input!");
-	} else if ((parseInt(newMinX) < lowerBound) || (parseInt(newMinX) >= upperBound)) {
+	} else if ((parseInt(newMinX) < minRangeX) || (parseInt(newMinX) >= maxRangeX)) {
 		alert("Input out of bound!");
 	} else {
 		rawDataObject.minPriceX = newMinX;
@@ -947,7 +956,7 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-/*
+
     $("#choose_x").val("Customer revenue");
 	$("#choose_y").val("Absolute Px");
 //    $("#choose_y").val("GB Px");
@@ -962,7 +971,7 @@ function initPlot() {
     $(".tooltip_display")[3].checked = true;
 //    $(".tooltip_display")[4].checked = true;
 //    $(".tooltip_display")[6].checked = true;
-*/
+
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
@@ -989,17 +998,14 @@ function initPlot() {
 		});
 
         // Determine smallest and largest values for x and y
-        settings.xMin = d3.min(extractValue(data, settings.xName));
-        settings.xMax = d3.max(extractValue(data, settings.xName));
         settings.yMin = d3.min(extractValue(data, settings.yName));
         settings.yMax = d3.max(extractValue(data, settings.yName));
-        settings.minimumX = Math.min(settings.xMin, rawDataObject.minPriceX);
 		
 		// Generate discount slope and anchor points if missing, otherwise convert to numerical values
 		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique); // extract unique categories for data subset
 		data.forEach(function (d) {
 			d[rawDataObject.dSlopeName] = typeof(d[rawDataObject.dSlopeName]) == "undefined" ? -0.05 : d[rawDataObject.dSlopeName]; // set discount to -0.05 if missing
-			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? settings.xMax : d[rawDataObject.anchorName.x]; // set anchor x to be maximum of x
+			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? rawDataObject.maxRangeX * 0.1 : d[rawDataObject.anchorName.x]; // set anchor x to be maximum of x
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
 					var tempValue = settings.yMin + i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
@@ -1015,7 +1021,6 @@ function initPlot() {
             d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x]; // convert anchor x to numerical
             d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y]; // convert anchor y to numerical
 		});
-        settings.maximumX = Math.max(settings.xMax, d3.max(extractValue(data, rawDataObject.anchorName.x))); // maximum of data x and anchor x
 
         // Save settings to global
         rawDataObject.settings = settings;
@@ -1024,6 +1029,7 @@ function initPlot() {
 		detectCustomer();
         scatterPlot(data);
         addLine(data);
+		updateLine();
         addAnchorPoints();
         addMinPricePoint();
 		

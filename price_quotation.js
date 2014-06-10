@@ -38,15 +38,16 @@ function clickAll() {
 // Add input options for customer ask price
 function addAskPrice(d) {
     $(".externalObject").remove();
-	rawDataObject.askPriceCategory = d;
+	rawDataObject.newPointCategory = d;
 	var divText = "";
-    divText += "<div id=new_ask_price class=externalTextbox><b>Add Asking Price for:</b><br/>";
+    divText += "<div id=new_point_div class=externalTextbox><b>Add Point for:</b><br/>";
 	divText += d + "<br/>";
-    divText += "<input type='text' id=ask_price_coord class=externalTextbox placeholder='enter coordinates' onchange=updateAskPrice()></input></div>";
+	divText += "<select id=add_point_selector><option value='askPrice'>Customer Ask Price</option><option value='newPoint'>New Grid Point</option></select><br/>";
+    divText += "<input type='text' id=new_point_coord class=externalTextbox placeholder='enter coordinates' onchange=addNewPoint()></input></div>";
 	
     d3.select("svg").append("foreignObject")
         .attr("class", "externalObject")
-        .attr("x", ($(".legend rect").attr("x") * 0.68) + "px")
+        .attr("x", ($(".legend rect").attr("x") * 0.8) + "px")
         .attr("y", "50px")
         .attr("width", 200)
         .attr("height", 100)
@@ -54,71 +55,191 @@ function addAskPrice(d) {
         .html(divText);
 }
 
-// Add actual ask price point
-function updateAskPrice() {
+// Add new points to grid
+function addNewPoint() {
     var xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
-		askPriceCategory = rawDataObject.askPriceCategory,
+		newPointCategory = rawDataObject.newPointCategory,
 		pointData = rawDataObject.pointData,
-        settings = rawDataObject.settings,
-        xMin = settings.xMin,
-        xMax = settings.xMax,
-        yMin = settings.yMin,
-        yMax = settings.yMax,
+        minRangeX = rawDataObject.minRangeX,
+        maxRangeX = rawDataObject.maxRangeX,
+        minRangeY = rawDataObject.minRangeY,
+        maxRangeY = rawDataObject.maxRangeY,
+		settings = rawDataObject.settings,
 		xName = settings.xName,
         yName = settings.yName,
 		format = d3.format(",f"),
-        newCoord = $("#ask_price_coord").val().split(","),
-        newAskX = parseFloat(newCoord[0]),
-        newAskY = parseFloat(newCoord[1]),
+		pointType = $("#add_point_selector").val(),
+        newCoord = $("#new_point_coord").val().split(","),
+        newX = parseFloat(newCoord[0]),
+        newY = parseFloat(newCoord[1]),
+		predX = 0,
 		predY = 0,
 		gridDev = 0;
-    if (isNaN(newAskX) || isNaN(newAskY)) {
+	if (isNaN(newX) || isNaN(newY)) {
         alert("Invalid input!");
-    } else if (newAskX < Math.pow(10, Math.floor(log10(xMin))) || newAskX > Math.pow(10, Math.ceil(log10(xMax))) || newAskY < 0.9 * yMin || newAskY > 1.1 * yMax) {
+    } else if ((newX <= minRangeX & newX != -1) || newX > maxRangeX || (newY < minRangeY & newY != -1) || newY > maxRangeY) {
         alert("Input out of bound!");
     } else {
-		var askPriceTooltip = d3.select("#data_visualization").append("div").attr("class", "tooltip"); // add tooltip for new asking price
-		
+		// Initialize tooltip for new point
+		var newPointTooltip = d3.select("#data_visualization").append("div").attr("class", "tooltip");
+		// Calculate predicted y and grid deviation
 		for (var i = 0; i < pointData.length; i++) {
-			if (pointData[i]["category"] == askPriceCategory) {
-				predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(newAskX);
-				gridDev = (newAskY - predY) / predY;
+			if (pointData[i]["category"] == newPointCategory) {
+				if (pointType == "askPrice") {
+					predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(newX);
+					gridDev = (newY - predY) / predY;
+				} else {
+					if (newX == -1) {
+						predY = newY;
+						predX = Math.pow(10, (predY - pointData[i]["intercept"]) / pointData[i]["slope"]);
+					}
+					if (newY == -1) {
+						predX = newX;
+						predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(predX);
+					}
+				}
 			}
 		}
-
-        var askPricePoint = d3.select("g").append("rect")
-            .attr("id", "ask_point_" + newAskX + "_" + newAskY)
-            .attr("class", "ask_dot")
-            .attr("width", 12)
-            .attr("height", 12)
-            .attr("x", 0)
-            .attr("y", 0)
-            .style("zIndex", 10)
+		// Add new point to svg
+		if (pointType == "askPrice") { // if new customer ask price
+			var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path").attr("d", d3.svg.symbol().type("diamond").size(100));
+		} else { // if new grid point
+			var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path").attr("d", d3.svg.symbol().type("square").size(100));
+		}
+		newPoint.attr("id", "new_point_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_"))
+			.attr("class", "new_dot")
+			.style("zIndex", 10)
+            .style("fill", $("#legend_" + newPointCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
+            .style("stroke", "black")
+            .style("stroke-width", "2px")
             .on("contextmenu", function () {
 				d3.event.preventDefault(); // prevent right click menu from showing
 				d3.select(this).remove(); // remove dot
-				d3.select("#ask_tooltip_" + newAskX + "_" + newAskY).remove(); // remove associated tooltip
+				d3.select("#new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).remove(); // remove associated tooltip
 			})
             .on("mouseover", function () {
-				var tooltipText = "<u>New Ask Price</u><br/>" + xName + ": " + format(newAskX) + "<br/>" + yName + ": " + newAskY.toFixed(2) + "<br/>";
-				tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>" + "Grid Deviation: " + gridDev.toFixed(2);
-				askPriceTooltip.attr("id", "ask_tooltip_" + newAskX + "_" + newAskY).transition().style("opacity", 0.62).style("display", "block");
-				askPriceTooltip.html(tooltipText)
+				var tooltipText = (pointType == "askPrice" ? "<u>Customer Ask Price</u><br/>" : "<u>New Grid Point</u><br/>");
+				tooltipText += (pointType == "askPrice" ? xName + ": " + format(newX) + "<br/>" : "Predicted " + xName + ": " + format(predX) + "<br/>");
+				tooltipText += (pointType == "askPrice" ? yName + ": " + newY.toFixed(2) + "<br/>" : "");
+				tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>";
+				tooltipText += (pointType == "askPrice" ? "Grid Deviation: " + gridDev.toFixed(2) : "");
+				newPointTooltip.attr("id", "new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).transition().style("opacity", 0.62).style("display", "block");
+				newPointTooltip.html(tooltipText)
 					.style("left", (d3.event.pageX - 80) + "px")
 					.style("top", (d3.event.pageY + 20) + "px");
 			})
             .on("mouseout", function () {
-				askPriceTooltip.transition().style("opacity", 0).style("display", "none");
+				newPointTooltip.transition().style("opacity", 0).style("display", "none");
 			});
-        askPricePoint.transition().duration(1000).ease("elastic")
-            .attr("x", xScale(newAskX))
-            .attr("y", yScale(newAskY))
-            .style("fill", $("#legend_" + askPriceCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
-            .style("stroke", "black")
-            .style("stroke-width", "2px");
-        $("#new_ask_price").hide();
+		if (pointType == "askPrice") {
+			newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(newX) + "," + yScale(newY) + ")";});
+			newPoint.on("click", function (d) {
+				rawDataObject.competitorCategory = newPointCategory;
+				rawDataObject.competitorRevenue = newX;
+				$(".externalObject").remove();
+				var clickCoord = d3.mouse(this);
+				var divText = "";
+				divText += "<div id=competitor_price_div class=externalTextbox><b>Add Competitor Price for:</b><br/>";
+				divText += newPointCategory + "<br/>";
+				divText += "Revenue: " + format(newX) + "<br/>";
+				divText += "<input type='text' id=competitor_name class=externalTextbox placeholder='enter competitor name'></input>";
+				divText += "<input type='text' id=competitor_price class=externalTextbox placeholder='enter competitor price' onchange=addCompetitorPrice()></input></div>";
+				
+				d3.select("svg").append("foreignObject")
+					.attr("class", "externalObject")
+					.attr("x", (xScale(newX) - 10) + "px")
+					.attr("y", (yScale(newY) - 60) + "px")
+					.attr("width", 200)
+					.attr("height", 200)
+					.append("xhtml:div")
+					.html(divText);
+			})
+		} else {
+			newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(predX) + "," + yScale(predY) + ")";});
+		}
+        $("#new_point_div").hide();
     }
 }
+
+// Add new competitor price
+function addCompetitorPrice () {
+    var xScale = rawDataObject.xScale,
+        yScale = rawDataObject.yScale,
+		competitorCategory = rawDataObject.competitorCategory,
+		competitorRevenue = rawDataObject.competitorRevenue,
+		pointData = rawDataObject.pointData,
+        minRangeY = rawDataObject.minRangeY,
+        maxRangeY = rawDataObject.maxRangeY,
+		format = d3.format(",f"),
+		competitorName = $("#competitor_name").val(),
+        competitorPrice = $("#competitor_price").val(),
+		predY = 0,
+		gridDev = 0;
+	
+	if (isNaN(competitorPrice)) {
+        alert("Invalid input!");
+    } else if (parseFloat(competitorPrice) < minRangeY || parseFloat(competitorPrice) > maxRangeY) {
+        alert("Input out of bound!");
+    } else {
+		competitorPrice = parseFloat(competitorPrice);
+		// Initialize tooltip for competitor price
+		var competitorPriceTooltip = d3.select("#data_visualization").append("div").attr("class", "tooltip");
+		// Calculate predicted y and grid deviation
+		for (var i = 0; i < pointData.length; i++) {
+			if (pointData[i]["category"] == competitorCategory) {
+				predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(competitorRevenue);
+				gridDev = (competitorPrice - predY) / predY;
+			}
+		}
+		var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path")
+			.attr("id", "comp_price_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_"))
+			.attr("class", "comp_price_dot")
+			.attr("d", d3.svg.symbol().type("cross").size(100))
+			.style("zIndex", 10)
+            .style("fill", $("#legend_" + competitorCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
+            .style("stroke", "black")
+            .style("stroke-width", "2px")
+            .on("contextmenu", function () {
+				d3.event.preventDefault(); // prevent right click menu from showing
+				d3.select(this).remove(); // remove dot
+				d3.select("#comp_price_text_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_")).remove(); // remove text
+				d3.select("#comp_price_tooltip_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_")).remove(); // remove associated tooltip
+			})
+            .on("mouseover", function () {
+				var tooltipText = "<u>Competitor Price</u><br/>";
+				tooltipText += (competitorName == "" ? "" : "Competitor Name: " + competitorName + "<br/>");
+				tooltipText += "Competitor Price: " + competitorPrice.toFixed(2) + "<br/>";
+				tooltipText += "Predicted Competitor Price: " + predY.toFixed(2) + "<br/>";
+				tooltipText += "Grid Deviation: " + gridDev.toFixed(2);
+				competitorPriceTooltip.attr("id", "comp_price_tooltip_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_")).transition().style("opacity", 0.62).style("display", "block");
+				competitorPriceTooltip.html(tooltipText)
+					.style("left", (d3.event.pageX - 80) + "px")
+					.style("top", (d3.event.pageY + 20) + "px");
+			})
+            .on("mouseout", function () {
+				competitorPriceTooltip.transition().style("opacity", 0).style("display", "none");
+			});
+		var textLabel = d3.select(".newpoints").append("text").text(competitorName)
+			.attr("id", "comp_price_text_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_"))
+			.attr("fill", $("#legend_" + competitorCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
+			.style("font-size", "14px")
+			.style("stroke", "black")
+			.style("stroke-width", "0.5px");
+		textLabel.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + (xScale(competitorRevenue) + 12) + "," + (yScale(competitorPrice) + 5) + ")";});
+		newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(competitorRevenue) + "," + yScale(competitorPrice) + ")";});
+		$("#competitor_price_div").hide();
+	}
+}
+
+
+
+
+
+
+
+
+
+
 
 
