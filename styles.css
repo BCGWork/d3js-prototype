@@ -10,6 +10,7 @@ body
 	stroke:black;
 	width:2.5;
 	zIndex:6;
+	pointer-events:none;
 }
 .tooltip
 {
@@ -23,6 +24,7 @@ body
 	padding:5px;
 	position:absolute;
 	zIndex:5;
+	pointer-events:none;
 }
 .click_tooltip
 {
@@ -37,6 +39,7 @@ body
 	padding:5px;
 	position: absolute;
 	zIndex:5;
+	pointer-events:none;
 }
 .textbox
 {

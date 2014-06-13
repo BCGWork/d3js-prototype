@@ -70,6 +70,7 @@ function handleFileSelect(evt) {
 
     $("#upload_status").html(output);
     d3.select("svg").remove();
+	d3.select("#div_click_tooltip").remove();
 }
 
 // Read and parse data from csv
@@ -127,17 +128,17 @@ function defineTooltip(dataHeader) {
     $(".tooltip_label").remove();
     $("#tooltip_title").show();
     for (var i = 0; i < dataHeader.length; i++) {
-        if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
+//        if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
             var tooltipLabel = $("<label class=tooltip_label />").html(dataHeader[i])
                 .prepend($("<input/>")
                     .attr({
                         type: "checkbox",
-                        id: dataHeader[i],
+                        id: "tooltip_" + dataHeader[i],
                         class: "tooltip_display",
                         value: dataHeader[i]
                     }));
             $("#tooltip_checkbox").append(tooltipLabel).append("<br class=tooltip_label />");
-        }
+//        }
     }
     $("#selectall_label").show();
 }
@@ -162,6 +163,14 @@ function defineFilters(dataHeader) {
     return filters;
 }
 
+// Enable select all feature for filters
+function filterSelectAll(filterName, source) {
+	var filterCheckbox = $("[id='" + filterName + "']");
+    for (var i = 0; i < filterCheckbox.length; i++) {
+        filterCheckbox[i].checked = source.checked;
+    }
+}
+
 // Add filters and create check boxes for each
 function createCheckBox(data) {
     $("#filter_checkbox").empty();
@@ -172,7 +181,8 @@ function createCheckBox(data) {
         $("#filter_checkbox").append("<br/>");
         $("#filter_checkbox").append("<div class=" + filterName[i].substr(9) + "><b>" + filterName[i] + "</b></div>");
         // Extract unique data for each filter
-		var uniqueFilterData = extractValue(data, filterName[i]).filter(detectUnique);
+		var uniqueFilterData = extractValue(data, filterName[i]).filter(detectUnique),
+			filterId = filterName[i].replace(/,|\.|-| /g, "")
 
         // Sort each filter options
         if (isNaN(parseFloat(uniqueFilterData[0]))) {
@@ -182,6 +192,8 @@ function createCheckBox(data) {
         }
 
         // Create check boxes according to unique filter data
+		var selectAllCb = "<label><input type='checkbox' id=" + filterId + "_selectall onchange='filterSelectAll(&apos;" + filterName[i] + "&apos;, this)'><font color='#5C5858'><em>Select / Deselect all</em></font></label>"
+		$("#filter_checkbox").append(selectAllCb).append("<br/>");
         for (var k = 0; k < uniqueFilterData.length; k++) {
             var checkBoxLabel = $("<label/>").html(uniqueFilterData[k])
                 .prepend($("<input/>")
@@ -303,12 +315,11 @@ function scatterPlot(data) {
     d3.select("#data_visualization").append("div").attr("id", "div_click_tooltip");
 
     // attach svg to canvas
-    var svg = d3.select("#data_visualization").append("svg")
+    var svgContainer = d3.select("#data_visualization").append("svg")
         .attr("width", $("#data_visualization").width() - 20)
-        .attr("height", height + margin.top + margin.bottom)
-		.attr("overflow", "auto")
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .attr("height", height + margin.top + margin.bottom);
+	
+	var svg = svgContainer.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")").style("pointer-events", "all");
 
     // x-axis
     svg.append("g")
@@ -347,6 +358,47 @@ function scatterPlot(data) {
 	rawDataObject.minRangeY = d3.min(yRange);
 	rawDataObject.maxRangeY = d3.max(yRange);
 
+	// Add cross hair
+	var crossHair = svg.append("g").attr("class", "crosshair");
+	crossHair.append("line").attr("id", "h_crosshair") // horizontal cross hair
+		.attr("x1", 0)
+		.attr("y1", 0)
+		.attr("x2", 0)
+		.attr("y2", 0)
+		.style("stroke", "gray")
+		.style("stroke-width", "0.62px")
+		.style("stroke-dasharray", "5,5")
+		.style("display", "none");
+		
+	crossHair.append("line").attr("id", "v_crosshair") // vertical cross hair
+		.attr("x1", 0)
+		.attr("y1", 0)
+		.attr("x2", 0)
+		.attr("y2", 0)
+		.style("stroke", "gray")
+		.style("stroke-width", "0.62px")
+		.style("stroke-dasharray", "5,5")
+		.style("display", "none");
+		
+	crossHair.append("text").attr("id", "crosshair_text") // text label for cross hair
+		.style("font-size", "10px")
+		.style("stroke", "gray")
+		.style("stroke-width", "0.62px");
+	
+	svg.on("mousemove", function () {
+		var xCoord = d3.mouse(this)[0],
+			yCoord = d3.mouse(this)[1];
+			addCrossHair(xCoord, yCoord);
+		})
+		.on("mouseover", function () {d3.selectAll(".crosshair").style("display", "block");})
+		.on("mouseout", function () {d3.selectAll(".crosshair").style("display", "none");})
+		.append("rect")
+		.style("visibility", "hidden")
+		.attr("x", xScale(minRangeX))
+		.attr("y", yScale(d3.max(yRange)))
+		.attr("width", xScale(maxRangeX))
+		.attr("height", yScale(d3.min(yRange)));
+	
     // scatter plot
     svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
         .data(data).enter().append("circle")
@@ -857,6 +909,35 @@ function tooltipUpdate(d) {
     return tooltipText;
 }
 
+// Draw cross hair while moving mouse
+function addCrossHair(xCoord, yCoord) {
+	var xScale = rawDataObject.xScale,
+		yScale = rawDataObject.yScale,
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX,
+		minRangeY = rawDataObject.minRangeY,
+		maxRangeY = rawDataObject.maxRangeY,
+		format = d3.format(",f");
+	// Update horizontal cross hair
+	d3.select("#h_crosshair")
+		.attr("x1", xScale(minRangeX))
+		.attr("y1", yCoord)
+		.attr("x2", xScale(maxRangeX))
+		.attr("y2", yCoord)
+		.style("display", "block");
+	// Update vertical cross hair
+	d3.select("#v_crosshair")
+		.attr("x1", xCoord)
+		.attr("y1", yScale(minRangeY))
+		.attr("x2", xCoord)
+		.attr("y2", yScale(maxRangeY))
+		.style("display", "block");
+	// Update text label
+	d3.select("#crosshair_text")
+		.attr("transform", "translate(" + (xCoord + 5) + "," + (yCoord - 5) + ")")
+		.text("(" + format(xScale.invert(xCoord)) + " , " + yScale.invert(yCoord).toFixed(2) + ")");
+}
+
 // Print grid windows
 function printGrid() {
     var width = $("svg").attr("width"), // get svg width
@@ -956,7 +1037,7 @@ function initPlot() {
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
         }
     });
-
+/*
     $("#choose_x").val("Customer revenue");
 	$("#choose_y").val("Absolute Px");
 //    $("#choose_y").val("GB Px");
@@ -968,10 +1049,10 @@ function initPlot() {
     $(".checkbox")[7].checked = true;
     $(".checkbox")[12].checked = true;
 	$(".checkbox")[13].checked = true;
-    $(".tooltip_display")[3].checked = true;
+    $(".tooltip_display")[8].checked = true;
 //    $(".tooltip_display")[4].checked = true;
 //    $(".tooltip_display")[6].checked = true;
-
+*/
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
@@ -1008,7 +1089,7 @@ function initPlot() {
 			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? rawDataObject.maxRangeX * 0.1 : d[rawDataObject.anchorName.x]; // set anchor x to be maximum of x
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
-					var tempValue = settings.yMin + i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
+					var tempValue = settings.yMin + 0.5 * i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
 					if (settings.yName == rawDataObject.pxGB) { // if y represents price per capacity ...
 						d["AnchorPerGB"] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y]; // set anchor y if missing
 						d["AnchorPerGB"] = !isNaN(d[rawDataObject.anchorName.y]) ? (d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName]) : tempValue; // set anchor y according to actual price 

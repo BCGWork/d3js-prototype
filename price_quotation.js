@@ -72,10 +72,7 @@ function addNewPoint() {
 		pointType = $("#add_point_selector").val(),
         newCoord = $("#new_point_coord").val().split(","),
         newX = parseFloat(newCoord[0]),
-        newY = parseFloat(newCoord[1]),
-		predX = 0,
-		predY = 0,
-		gridDev = 0;
+        newY = parseFloat(newCoord[1]);
 	if (isNaN(newX) || isNaN(newY)) {
         alert("Invalid input!");
     } else if ((newX <= minRangeX & newX != -1) || newX > maxRangeX || (newY < minRangeY & newY != -1) || newY > maxRangeY) {
@@ -87,16 +84,25 @@ function addNewPoint() {
 		for (var i = 0; i < pointData.length; i++) {
 			if (pointData[i]["category"] == newPointCategory) {
 				if (pointType == "askPrice") {
-					predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(newX);
-					gridDev = (newY - predY) / predY;
-				} else {
-					if (newX == -1) {
-						predY = newY;
-						predX = Math.pow(10, (predY - pointData[i]["intercept"]) / pointData[i]["slope"]);
+					if (newX == -1 || newY == -1) {
+						alert("Input out of bound!");
+						return;
+					} else {
+						var predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(newX);
+						var gridDev = (newY - predY) / predY;
 					}
-					if (newY == -1) {
-						predX = newX;
-						predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(predX);
+				} else {
+					if (newX == -1 & newY == -1) {
+						alert("Only one -1 is allowed!");
+						return;
+					} else if (newX == -1) {
+						var predY = newY;
+						var predX = Math.pow(10, (predY - pointData[i]["intercept"]) / pointData[i]["slope"]);
+					} else if (newY == -1) {
+						var predX = newX;
+						var predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(predX);
+					} else {
+						alert("Specify -1 for an axis!");
 					}
 				}
 			}
@@ -133,7 +139,9 @@ function addNewPoint() {
 				newPointTooltip.transition().style("opacity", 0).style("display", "none");
 			});
 		if (pointType == "askPrice") {
-			newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(newX) + "," + yScale(newY) + ")";});
+			if (!(newX == -1 || newY == -1)) {
+				newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(newX) + "," + yScale(newY) + ")";});
+			}
 			newPoint.on("click", function (d) {
 				rawDataObject.competitorCategory = newPointCategory;
 				rawDataObject.competitorRevenue = newX;
