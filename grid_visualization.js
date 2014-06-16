@@ -1,25 +1,3 @@
-// Sort number
-function sortNumber(a, b) {
-    return a - b;
-}
-
-// Log base 10
-function log10(x) {
-    return Math.log(x) / Math.LN10;
-}
-
-// Pull all values of a key from an object
-function extractValue(object, key) {
-    return object.map(function (el) {
-        return el[key];
-    });
-}
-
-// Find unique values in object array
-function detectUnique(value, index, self) {
-	return self.indexOf(value) == index;
-}
-
 // Calculate grid line
 function findLine(slope, x1, x2, y2, xMax) {
     var intercept = y2 - slope * x2,
@@ -302,6 +280,10 @@ function scatterPlot(data) {
         yAxis = d3.svg.axis()
         .scale(yScale)
         .orient("left");
+	// Record minimum and maximum range of y and pass to global
+	rawDataObject.minRangeY = yScale.invert(height);
+	rawDataObject.maxRangeY = yScale.invert(0);
+
     // set up fill color
     var zValue = function (d) {
             return d[zName];
@@ -348,16 +330,6 @@ function scatterPlot(data) {
         .style("font-weight", "bold")
         .text(yName);
 	
-	// Record minimum and maximum range of y and pass to global
-	var yRange = [];
-	$.each($("#yaxis text"),function(){
-		if (!isNaN($(this).html())) {
-			yRange.push(parseFloat(($(this).html())));
-		}
-	});
-	rawDataObject.minRangeY = d3.min(yRange);
-	rawDataObject.maxRangeY = d3.max(yRange);
-
 	// Add cross hair
 	var crossHair = svg.append("g").attr("class", "crosshair");
 	crossHair.append("line").attr("id", "h_crosshair") // horizontal cross hair
@@ -394,10 +366,10 @@ function scatterPlot(data) {
 		.on("mouseout", function () {d3.selectAll(".crosshair").style("display", "none");})
 		.append("rect")
 		.style("visibility", "hidden")
-		.attr("x", xScale(minRangeX))
-		.attr("y", yScale(d3.max(yRange)))
-		.attr("width", xScale(maxRangeX))
-		.attr("height", yScale(d3.min(yRange)));
+		.attr("x", 0)
+		.attr("y", 0)
+		.attr("width", width)
+		.attr("height", height);
 	
     // scatter plot
     svg.append("g").attr("class", "scatterplot").selectAll("scatterplot")
@@ -911,113 +883,29 @@ function tooltipUpdate(d) {
 
 // Draw cross hair while moving mouse
 function addCrossHair(xCoord, yCoord) {
-	var xScale = rawDataObject.xScale,
+	var width = rawDataObject.width,
+		height = rawDataObject.height,
+		xScale = rawDataObject.xScale,
 		yScale = rawDataObject.yScale,
-		minRangeX = rawDataObject.minRangeX,
-		maxRangeX = rawDataObject.maxRangeX,
-		minRangeY = rawDataObject.minRangeY,
-		maxRangeY = rawDataObject.maxRangeY,
 		format = d3.format(",f");
 	// Update horizontal cross hair
 	d3.select("#h_crosshair")
-		.attr("x1", xScale(minRangeX))
+		.attr("x1", 0)
 		.attr("y1", yCoord)
-		.attr("x2", xScale(maxRangeX))
+		.attr("x2", width)
 		.attr("y2", yCoord)
 		.style("display", "block");
 	// Update vertical cross hair
 	d3.select("#v_crosshair")
 		.attr("x1", xCoord)
-		.attr("y1", yScale(minRangeY))
+		.attr("y1", 0)
 		.attr("x2", xCoord)
-		.attr("y2", yScale(maxRangeY))
+		.attr("y2", height)
 		.style("display", "block");
 	// Update text label
 	d3.select("#crosshair_text")
 		.attr("transform", "translate(" + (xCoord + 5) + "," + (yCoord - 5) + ")")
 		.text("(" + format(xScale.invert(xCoord)) + " , " + yScale.invert(yCoord).toFixed(2) + ")");
-}
-
-// Print grid windows
-function printGrid() {
-    var width = $("svg").attr("width"), // get svg width
-        height = $("svg").attr("height"), // get svg height
-        gridContent = $("svg").html(), // get svg content
-        printWindow = window.open(); // open new window
-    printWindow.document.write("<html><title>Grid Visualization</title><head><link rel='stylesheet' type='text/css' href='styles.css'></link></head><body>"); // initialize and import css settings
-    printWindow.document.write("<button onclick='window.print()'>Print</button>"); // create print button
-    printWindow.document.write("<button onclick='window.close()'>Close</button><hr/>"); // create close button
-    printWindow.document.write("<svg width=" + width + " height=" + height + ">"); // initialize svg according to existing width and height
-    printWindow.document.write(gridContent); // reproduce svg content
-    printWindow.document.write("</svg></body></html>"); // end page
-}
-
-// Log user activity
-function logOutput() {
-    var data = rawDataObject.currentData;
-    // Take snapshot of current settings
-    for (var i = 0; i < data.length; i++) {
-        var tempLog = [];
-        for (var key in data[i]) {
-            if ((key != "Category") && (key != "AnchorPerGB")) {
-                tempLog.push(data[i][key]);
-            }
-        }
-        rawDataObject.userLog = rawDataObject.userLog.concat(tempLog.toString() + "\n");
-    }
-
-    // Set log status in div
-    $("#log_status").html("Data Saved!").show();
-    setTimeout(function () {
-        $("#log_status").fadeOut("slow");
-    }, 800);
-}
-
-// Export output to text file
-function exportToText() {
-    var textToExport = new Blob([rawDataObject.userLog], {
-        type: "text/html",
-        endings: "native"
-    });
-    var downloadLink = document.createElement("a");
-    downloadLink.download = "UpdatedData.csv";
-    if (window.webkitURL != null) {
-        // Chrome allows the link to be clicked without actually adding it to the DOM.
-        downloadLink.href = window.webkitURL.createObjectURL(textToExport);
-    } else {
-        // Firefox requires the link to be added to the DOM before it can be clicked.
-        function destroyClickedElement(event) {
-            document.body.removeChild(event.target);
-        }
-        downloadLink.href = window.URL.createObjectURL(textToExport);
-        downloadLink.onclick = destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-    }
-    downloadLink.click();
-}
-
-// Add change log button
-function changeLog() {
-	var changeLogText = "<h3>Change Log</h3>";
-	
-	var v0_20Change = "<h4><u>v0.2</u></h4><ol>";
-	v0_20Change += "<li>Enabled customer filter feature to view selected customers.</li>";
-	v0_20Change += "<li>Enabled &quot;Click All&quot; button for all customers.</li>";
-	v0_20Change += "<li>Enabled addition of ask price by clicking on legend.</li>";
-	v0_20Change += "<li>Added support for missing discount slope and anchor points in data.</li>";
-	v0_20Change += "<li>Remade &quot;Print&quot; button.</li>";
-	v0_20Change += "<li>Fixed a bug when no tooltip option is selected, a dot will appear.</li>";
-	v0_20Change += "<li>Added support for typo and out-of-bound ranges in input boxes.</li>";
-	v0_20Change += "<li>Fixed a bug causing difficulties to click on points.</li>";
-	v0_20Change += "<li>Added &quot;Change Log&quot; button.</li>";
-	v0_20Change += "<li>Extended expiration date to 2014-06-15.</li>";
-	v0_20Change += "<li>Some other minor bug fixes.</li>";
-	v0_20Change += "</ol>";
-	
-	changeLogText += v0_20Change;
-	var changeLogWindow = window.open("", "MsgWindow", "width=400, height=600");
-	changeLogWindow.document.write(changeLogText);
 }
 
 // Function to initialize visualization
