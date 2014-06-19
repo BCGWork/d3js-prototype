@@ -5,9 +5,11 @@
     <meta charset="utf-8" />
     <title>Pricing Grid Visualization</title>
     <link rel="stylesheet" type="text/css" href="styles.css"></link>
-    <script type="text/javascript" src="jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="jquery.csv-0.71.min.js"></script>
-    <script type="text/javascript" src="d3.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css"></link>
+    <script type="text/javascript" src="library/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="library/jquery.csv-0.71.min.js"></script>
+    <script type="text/javascript" src="library/d3.min.js"></script>
+	<script type="text/javascript" src="library/jquery-ui-1.10.4.custom.min.js"></script>
 	
     <script type="text/javascript">
         // Declare global variables
@@ -19,11 +21,12 @@
             x: "Anchor revenue",
             y: "Anchor Px"
         };
+		rawDataObject.buName = "Business Unit";
 		rawDataObject.capacityName = "Filter - Capacity";
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
         rawDataObject.userLog = "";
-        rawDataObject.minPriceX = 100000;
+        rawDataObject.minPriceX = 10000;
 		rawDataObject.minRangeX = 100;
 		rawDataObject.maxRangeX = 100000000000;
         rawDataObject.margin = {
@@ -32,66 +35,81 @@
             bottom: 50,
             left: 50
         };
-        rawDataObject.width = 1280 - rawDataObject.margin.left - rawDataObject.margin.right;
-        rawDataObject.height = 800 - rawDataObject.margin.top - rawDataObject.margin.bottom;
+        rawDataObject.width = window.screen.availWidth * 0.79 - rawDataObject.margin.left - rawDataObject.margin.right;
+        rawDataObject.height = window.screen.availHeight * 0.77 - rawDataObject.margin.top - rawDataObject.margin.bottom;
     </script>
+	
 	<script type="text/javascript" src="function_library.js"></script>
 	<script type="text/javascript" src="grid_visualization.js"></script>
 	<script type="text/javascript" src="price_quotation.js"></script>
 </head>
 
 <body>
-    <h1 id=title>Pricing Visualization Tool Prototype <sub><code>v0.3</code></sub></h1>
-    <h4 id=contact_author><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top">Contact Author</a>
+    <h1 id="title">Pricing Visualization Tool Prototype <sub><code>v0.4</code></sub></h1>
+    <h4 id="contact_author"><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top">Contact Author</a>
 		&nbsp &nbsp &nbsp
-		<button id=change_log onclick="changeLog()">Change Log</button>
+		<button id="change_log" onclick="changeLog()">Change Log</button>
 	</h4>
     <hr/>
-    <div id=user_inputs>
+    <div id"user_inputs">
         <h3>Data Input</h3>
-        <input id=files type=file name=files[]></input>
-        <br/>
-        <output id=upload_status></output>
+        <input id="files" type="file" name="files[]"></input>
+        <output id="upload_status"></output>
+		<br/><br/>
+		<select id="choose_bu" onchange="popControl()" style="display:none"></select>
     </div>
     <hr/>
-    <div id=control_panel style="width: 20%; float:left">
+    <div id="control_panel" style="width:20%; float:left">
         <h3>Control Panel</h3>
 		<!--
-		<button id=clone_page onclick="clonePage()">Duplicate Grid</button>
+		<button id="clone_page" onclick="clonePage()">Duplicate Grid</button>
 		-->
-        <button id=print_grid onclick="printGrid()">View/Print Grid</button>
+		<button id="refresh_grid" onclick="initPlot()">Refresh</button>
+        <button id="print_grid" onclick="printGrid()">View/Print Grid</button>
         <br/>
-        <button id=export_data onclick="exportToText()">Export Data</button>
-        <button id=log_data onclick="logOutput()">Log Data</button>
-        <output id=log_status></output>
-        <br/><hr/>
-        <div id=choose_variables>
-            <select id=choose_x style="display:none"></select>
-            <select id=choose_y style="display:none"></select>
+        <button id="log_data" onclick="logOutput()">Log Data</button>
+        <output id="log_status"></output>
+        <br/>
+		<button id="export_data" onclick="exportToText()">Export Data</button>
+		<hr/>
+        <div id="choose_variables">
+            <select id="choose_x" style="display:none"></select>
+            <select id="choose_y" style="display:none"></select>
         </div>
-        <div id=filter_checkbox style="width: 50%; float:left" onchange="initPlot()"></div>
-        <div id=tooltip_checkbox style="width: 50%; float:right">
+        <div id="filter_checkbox" style="width: 50%; float:left" onchange="initPlot()"></div>
+        <div id="tooltip_checkbox" style="width: 50%; float:right">
             <br/>
-            <div id=tooltip_title style="display:none"><b>Tooltip Settings</b>
+            <div id="tooltip_title" style="display:none"><b>Tooltip Settings</b>
             </div>
-            <label id=selectall_label style="display:none">
-                <input type="checkbox" id=tooltip_selectall onchange="selectAll(this)">
+            <label id="selectall_label" style="display:none">
+                <input type="checkbox" id="tooltip_selectall" onchange="tooltipSelectAll(this)">
                 <font color="#5C5858"><em>Select / Deselect all</em></font>
             </label>
             <br/>
         </div>
     </div>
-	<div id=data_visualization style="width: 80%; float:right">
-        <h3>Data Visualization</h3>
-		<output id=error_display></output>
-		<div id=customize_field style="display:none">
-			<select id=customer_filter onchange="filterCustomer()"></select>
-			<button id=click_all onclick="clickAll()">Click All</button>
+	<div id="visualization_tabs" style="width:79%; float:right; display:none">
+		<ul>
+			<li><a href="#data_visualization">Grid Visualization</a></li>
+			<li><a href="#playbook_viz">Playbook</a></li>
+		</ul>
+		<br/>
+		<div id="data_visualization" class="visualization_div">
+			<h3>Grid Visualization</h3>
+			<output id="error_display"></output>
+			<div id="customize_field" style="display:none">
+				<select id="customer_filter" onchange="filterCustomer()"></select>
+				<button id="click_all" onclick="clickAll()">Click All</button>
+			</div>
 		</div>
-    </div>
-
+		<div id="playbook_viz" class="visualization_div">
+			<h3>Playbook</h3>
+			Place holder for playbook module
+		<div>
+	</div>
+<!--
 	<script type="text/javascript" src="time_bomb.js"></script>
-
+-->
 </body>
 
 </html>

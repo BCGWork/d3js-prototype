@@ -19,7 +19,7 @@ function extractValue(object, key) {
 function detectUnique(value, index, self) {
 	return self.indexOf(value) == index;
 }
-
+/*
 // Duplicate grid and open in new tab
 function clonePage() {
 	var head = $("head").html(),
@@ -30,7 +30,7 @@ function clonePage() {
 	newWindow.document.write(body + "</body>");
 	newWindow.document.write("</html>");
 }
-
+*/
 // Print grid windows
 function printGrid() {
     var width = $("svg").attr("width"), // get svg width
@@ -93,6 +93,18 @@ function exportToText() {
 // Add change log button
 function changeLog() {
 	var changeLogText = "<h3>Change Log</h3>";
+
+	var v0_40Change = "<h4><u>v0.4</u></h4><ol>";
+	v0_40Change += "<li>Established framework to integrate Playbook module.</li>";
+	v0_40Change += "<li>Separated Business Unit from filters and changed underlying logic.</li>";
+	v0_40Change += "<li>Optimized automatic anchor points placement if missing.</li>";
+	v0_40Change += "<li>Fixed a bug causing inconsistent colors for same category when too many categories are visualized.</li>";
+	v0_40Change += "<li>Added &quot;Refresh&quot; button.</li>";
+	v0_40Change += "<li>Increased opacity of mouseover tooltips so that cross-hair won't interfere.</li>";
+	v0_40Change += "<li>Refined cross-hair area during mouse movement on x and y axes.</li>";
+	v0_40Change += "<li>Browser resolution will now be detected and used for positioning and scaling.</li>";
+	v0_40Change += "<li>Clicking on a grid line will highlight it and gray out the rest.</li>";
+	v0_40Change += "</ol>";
 	
 	var v0_30Change = "<h4><u>v0.3</u></h4><ol>";
 	v0_30Change += "<li>Enabled addition of new grid point by clicking on legend.</li>";
@@ -118,6 +130,7 @@ function changeLog() {
 	v0_20Change += "<li>Some other minor bug fixes.</li>";
 	v0_20Change += "</ol>";
 
+	changeLogText += v0_40Change;
 	changeLogText += v0_30Change;
 	changeLogText += v0_20Change;
 	var changeLogWindow = window.open("", "MsgWindow", "width=400, height=600");

@@ -47,9 +47,9 @@ function addAskPrice(d) {
 	
     d3.select("svg").append("foreignObject")
         .attr("class", "externalObject")
-        .attr("x", ($(".legend rect").attr("x") * 0.8) + "px")
+        .attr("x", ($(".legend rect").attr("x") * 0.62) + "px")
         .attr("y", "50px")
-        .attr("width", 200)
+        .attr("width", 300)
         .attr("height", 100)
         .append("xhtml:div")
         .html(divText);
@@ -130,10 +130,10 @@ function addNewPoint() {
 				tooltipText += (pointType == "askPrice" ? yName + ": " + newY.toFixed(2) + "<br/>" : "");
 				tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>";
 				tooltipText += (pointType == "askPrice" ? "Grid Deviation: " + gridDev.toFixed(2) : "");
-				newPointTooltip.attr("id", "new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).transition().style("opacity", 0.62).style("display", "block");
+				newPointTooltip.attr("id", "new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).transition().style("opacity", 0.9).style("display", "block");
 				newPointTooltip.html(tooltipText)
-					.style("left", (d3.event.pageX - 80) + "px")
-					.style("top", (d3.event.pageY + 20) + "px");
+					.style("left", ($(this).position()["left"] + 15) + "px")
+					.style("top", ($(this).position()["top"] - 30) + "px");
 			})
             .on("mouseout", function () {
 				newPointTooltip.transition().style("opacity", 0).style("display", "none");
@@ -220,10 +220,10 @@ function addCompetitorPrice () {
 				tooltipText += "Competitor Price: " + competitorPrice.toFixed(2) + "<br/>";
 				tooltipText += "Predicted Competitor Price: " + predY.toFixed(2) + "<br/>";
 				tooltipText += "Grid Deviation: " + gridDev.toFixed(2);
-				competitorPriceTooltip.attr("id", "comp_price_tooltip_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_")).transition().style("opacity", 0.62).style("display", "block");
+				competitorPriceTooltip.attr("id", "comp_price_tooltip_" + competitorRevenue.toString().replace(/\./g, "_") + "_" + competitorPrice.toString().replace(/\./g, "_")).transition().style("opacity", 0.9).style("display", "block");
 				competitorPriceTooltip.html(tooltipText)
-					.style("left", (d3.event.pageX - 80) + "px")
-					.style("top", (d3.event.pageY + 20) + "px");
+					.style("left", ($(this).position()["left"] + 15) + "px")
+					.style("top", ($(this).position()["top"] - 30) + "px");
 			})
             .on("mouseout", function () {
 				competitorPriceTooltip.transition().style("opacity", 0).style("display", "none");
@@ -239,15 +239,5 @@ function addCompetitorPrice () {
 		$("#competitor_price_div").hide();
 	}
 }
-
-
-
-
-
-
-
-
-
-
 
 

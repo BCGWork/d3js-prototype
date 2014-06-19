@@ -1,55 +1,54 @@
-body
-{
-	font:12px sans-serif;
+body {
+font:12px sans-serif;
 }
+
 .axis path,
-.axis line
-{
-	fill:none;
-	rendering:crispEdges;
-	stroke:black;
-	width:2.5;
-	zIndex:6;
-	pointer-events:none;
+.axis line {
+fill:none;
+rendering:crispEdges;
+stroke:#000;
+width:2.5px;
+zindex:6;
+pointer-events:none;
 }
-.tooltip
-{
-	background:#dddddd;
-	border:2px solid #a1a1a1;
-	border-radius:8px;
-	events:none;
-	font:sans-serif;
-	font-weight:bold;
-	opacity:0;
-	padding:5px;
-	position:absolute;
-	zIndex:5;
-	pointer-events:none;
+
+.tooltip {
+background:#ddd;
+border:2px solid #a1a1a1;
+border-radius:8px;
+events:none;
+font:sans-serif;
+font-weight:700;
+opacity:0;
+position:absolute;
+zindex:5;
+pointer-events:none;
+padding:5px;
 }
-.click_tooltip
-{
-	background:#636363;
-	border:2px solid black;
-	border-radius:8px;
-	color:white;
-	events:none;
-	font:sans-serif;
-	font-weight:bold;
-	opacity:0;
-	padding:5px;
-	position: absolute;
-	zIndex:5;
-	pointer-events:none;
+
+.click_tooltip {
+background:#636363;
+border:2px solid #000;
+border-radius:8px;
+color:#FFF;
+events:none;
+font:sans-serif;
+font-weight:700;
+opacity:0;
+position:absolute;
+zindex:5;
+pointer-events:none;
+padding:5px;
 }
-.textbox
-{
-	border:2px solid black;
-	border-radius:8px;
-	font:sans-serif;
-	font-weight:bold;
-	opacity:0;
-	padding:5px;
-	pointer-events:none;
-	position:absolute;
-	zIndex:10;
+
+.textbox {
+border:2px solid #000;
+border-radius:8px;
+font:sans-serif;
+font-weight:700;
+opacity:0;
+pointer-events:none;
+position:absolute;
+zindex:10;
+padding:5px;
 }

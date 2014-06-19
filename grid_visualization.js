@@ -39,14 +39,18 @@ function isAPIAvailable() {
 function handleFileSelect(evt) {
     var files = evt.target.files;
     var file = files[0];
-    var output = "Data Loaded!<br/>";
+    var output = "<font color='blue'>Data Loaded!</font>";
+/*
     output += " - FileName: " + escape(file.name) + "<br/>";
     output += " - FileType: " + (file.type || "n/a") + "<br/>";
     output += " - FileSize: " + file.size + " bytes<br/>";
     output += " - LastModified: " + (file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : "n/a") + "<br/>";
+*/
     readData(file);
 
     $("#upload_status").html(output);
+	$("#upload_status").show();
+	setTimeout(function () { $("#upload_status").fadeOut("slow"); }, 800);
     d3.select("svg").remove();
 	d3.select("#div_click_tooltip").remove();
 }
@@ -58,17 +62,59 @@ function readData(file) {
     reader.onload = function (event) {
         var csv = event.target.result;
         rawDataObject.dataObject = $.csv.toObjects(csv);
-        defineX(Object.keys(rawDataObject.dataObject[0]));
-        defineY(Object.keys(rawDataObject.dataObject[0]));
-        defineTooltip(Object.keys(rawDataObject.dataObject[0]));
-        createCheckBox(rawDataObject.dataObject);
+		defineBu(rawDataObject.buName);
     };
     reader.onerror = function () {
         alert("Unable to read " + file.fileName);
     };
 }
 
-// Detect and add input variables to drop down menus
+// Populate drop down menu for business unit
+function defineBu(name) {
+    $("#choose_bu").empty();
+    $("#choose_bu").append("<option value=''>choose a business unit</option>");
+    var buList = extractValue(rawDataObject.dataObject, name).filter(detectUnique);
+    for (var i = 0; i < buList.length; i++) {
+		$("#choose_bu").append("<option value='" + buList[i] + "'>Business Unit: " + buList[i] + "</option>");
+    }
+    $("#choose_bu").show();
+}
+
+// Populate filters and axes selector
+function popControl() {
+    d3.select("svg").remove();
+	d3.select("#div_click_tooltip").remove();
+	
+	var data = rawDataObject.dataObject.slice(),
+		buName = rawDataObject.buName;
+	
+	for (var i = data.length - 1; i >= 0; i--) {
+		if (data[i][buName] != $("#choose_bu").val()) {
+			data.splice(i, 1);
+		}
+	}
+	rawDataObject.buData = data;
+	
+	defineX(Object.keys(data[0]));
+	defineY(Object.keys(data[0]));
+	defineTooltip(Object.keys(data[0]));
+	createCheckBox(data);
+	$("#visualization_tabs").show();
+	$("#visualization_tabs").tabs({ selected: 1 });
+	
+    $("#choose_x").val("Customer revenue");
+	$("#choose_y").val("Absolute Px");
+//    $("#choose_y").val("GB Px");
+    $(".checkbox")[0].checked = true;
+    $(".checkbox")[1].checked = true;
+    $(".checkbox")[2].checked = true;
+	$(".checkbox")[5].checked = true;
+    $(".checkbox")[6].checked = true;
+    $(".tooltip_display")[7].checked = true;
+//    $(".tooltip_display")[9].checked = true;
+    $(".tooltip_display")[10].checked = true;
+}
+
 // Define x-axis variable
 function defineX(dataHeader) {
     $("#choose_x").empty();
@@ -122,7 +168,7 @@ function defineTooltip(dataHeader) {
 }
 
 // Enable select all feature for tooltips
-function selectAll(source) {
+function tooltipSelectAll(source) {
     var tooltipCheckbox = $(".tooltip_display");
     for (var i = 0; i < tooltipCheckbox.length; i++) {
         tooltipCheckbox[i].checked = source.checked;
@@ -157,7 +203,7 @@ function createCheckBox(data) {
 
     for (var i = 0; i < filterName.length; i++) {
         $("#filter_checkbox").append("<br/>");
-        $("#filter_checkbox").append("<div class=" + filterName[i].substr(9) + "><b>" + filterName[i] + "</b></div>");
+        $("#filter_checkbox").append("<div class=" + filterName[i].replace(/,|\.|-| /g, "") + "><b>" + filterName[i] + "</b></div>");
         // Extract unique data for each filter
 		var uniqueFilterData = extractValue(data, filterName[i]).filter(detectUnique),
 			filterId = filterName[i].replace(/,|\.|-| /g, "")
@@ -188,7 +234,6 @@ function createCheckBox(data) {
 
 // Subset data for visualization
 function subsetData(input_data) {
-    $("#upload_status").html("");
     // Detect the names of unchecked filters
     var uncheckedFilterObject = {},
         uncheckedFilterValue = [];
@@ -309,9 +354,10 @@ function scatterPlot(data) {
         .attr("class", "axis")
         .attr("transform", "translate(0," + height + ")")
         .call(xAxis)
+		.style("pointer-events", "none")
         .append("text")
         .attr("class", "label")
-        .attr("x", width + 25)
+        .attr("x", width)
         .attr("y", 40)
         .style("text-anchor", "end")
         .style("font-weight", "bold")
@@ -322,9 +368,10 @@ function scatterPlot(data) {
 		.attr("id", "yaxis")
         .attr("class", "axis")
         .call(yAxis)
+		.style("pointer-events", "none")
         .append("text")
         .attr("class", "label")
-        .attr("x", 25)
+        .attr("x", margin.left / 2)
         .attr("y", -20)
         .style("text-anchor", "end")
         .style("font-weight", "bold")
@@ -407,13 +454,13 @@ function scatterPlot(data) {
             return "translate(0," + i * 21 + ")";
         });
     legend.append("rect")
-        .attr("x", xScale(maxRangeX) * 0.8)
+        .attr("x", width * 0.75)
         .attr("y", -12)
         .attr("width", 18)
         .attr("height", 18)
         .attr("fill", zColor);
     legend.append("text")
-        .attr("x", xScale(maxRangeX) * 0.8 + 25)
+        .attr("x", width * 0.75 + 25)
         .attr("y", 0)
         .style("text-anchor", "start")
         .text(function (d) {
@@ -428,22 +475,26 @@ function scatterPlot(data) {
 function addLine(data) {
     // Initialize settings
     var anchorName = rawDataObject.anchorName,
+		capacityName = rawDataObject.capacityName,
         dSlopeName = rawDataObject.dSlopeName,
         minPriceX = rawDataObject.minPriceX,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
 		minRangeX = rawDataObject.minRangeX,
 		maxRangeX = rawDataObject.maxRangeX,
+		uniqueCat = rawDataObject.uniqueCat,
         settings = rawDataObject.settings,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
+		zColor = d3.scale.category10().domain(uniqueCat),
 		lineVals = [];
     // Determine unique category
     for (var i = 0; i < data.length; i++) {
         if ($.inArray(data[i][zName], extractValue(lineVals, "category")) == -1) {
             var objValue = {
                 "category": data[i][zName],
+				"capacity": parseFloat(data[i][capacityName]),
                 "dSlope": parseFloat(data[i][dSlopeName]),
                 "anchorX": parseFloat(data[i][anchorName.x]),
                 "anchorY": 0,
@@ -455,9 +506,6 @@ function addLine(data) {
         }
     }
 
-    // Set up fill color
-    var zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-	
 	// Initialize line group
 	d3.select("g").append("g").attr("class", "gridlines");
 
@@ -485,10 +533,13 @@ function addLine(data) {
             .attr("y1", yScale(coord.y1))
             .attr("x2", xScale(maxRangeX * 0.5))
             .attr("y2", yScale(coord.y2Max))
-            .style("stroke", zColor(i))
+            .style("stroke", zColor(coord.category))
             .style("stroke-width", 6)
             .style("opacity", 0.62)
             .on("click", function (d) {
+				d3.selectAll(".grid_line").style("opacity", 0.1);
+				d3.selectAll(".hline").style("opacity", 0.1);
+				d3.select(this).style("opacity", 1);
                 $(".externalObject").remove();
                 var divText = "";
                 divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(2) + "</b></div>";
@@ -512,11 +563,12 @@ function addAnchorPoints() {
     var pointData = rawDataObject.pointData,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
+		uniqueCat = rawDataObject.uniqueCat,
         settings = rawDataObject.settings,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
-        zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        zColor = d3.scale.category10().domain(uniqueCat),
         format = d3.format(",f"),
         anchorTooltip = d3.select("#data_visualization").append("div").attr("id", "anchor_tooltip").attr("class", "tooltip"); // add tooltip for anchor points
 
@@ -536,7 +588,7 @@ function addAnchorPoints() {
         })
 		.style("zIndex", 9)
         .style("fill", function (d) {
-            return zColor(d["fillName"]);
+            return zColor(d["category"]);
         })
         .style("stroke", "black")
         .style("stroke-width", "2px")
@@ -544,10 +596,10 @@ function addAnchorPoints() {
         .style("opacity", 0.38)
         .on("mouseover", function (d) {
             var tooltipText = "<u>Anchor Point</u><br/>" + xName + ": " + format(Math.pow(10, d["x2"])) + "<br/>" + yName + ": " + d["y2"].toFixed(2);
-            anchorTooltip.transition().style("opacity", 0.62).style("display", "block");
+            anchorTooltip.transition().style("opacity", 0.9).style("display", "block");
             anchorTooltip.html(tooltipText)
-                .style("left", (d3.event.pageX - 80) + "px")
-                .style("top", (d3.event.pageY + 20) + "px");
+                .style("left", ($(this).position()["left"] - 62) + "px")
+                .style("top", ($(this).position()["top"] + 25) + "px");
         })
         .on("mouseout", function (d) {
             anchorTooltip.transition().style("opacity", 0).style("display", "none");
@@ -577,11 +629,12 @@ function addMinPricePoint() {
     var pointData = rawDataObject.pointData,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
+		uniqueCat = rawDataObject.uniqueCat,
         settings = rawDataObject.settings,
         xName = settings.xName,
         yName = settings.yName,
         zName = settings.zName,
-        zColor = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        zColor = d3.scale.category10().domain(uniqueCat),
         format = d3.format(",f"),
         minPriceTooltip = d3.select("#data_visualization").append("div").attr("id", "min_price_tooltip").attr("class", "tooltip"); // add tooltip for minimum price points
 
@@ -601,7 +654,7 @@ function addMinPricePoint() {
         })
 		.style("zIndex", 8)
         .style("fill", function (d) {
-            return zColor(d["fillName"]);
+            return zColor(d["category"]);
         })
         .style("stroke", "black")
         .style("stroke-width", "2px")
@@ -609,10 +662,10 @@ function addMinPricePoint() {
         .style("opacity", 0.38)
         .on("mouseover", function (d) {
             var tooltipText = "<u>Minimum Price Point</u><br/>" + xName + ": " + format(rawDataObject.minPriceX) + "<br/>" + yName + ": " + d["y1"].toFixed(2);
-            minPriceTooltip.transition().style("opacity", 0.62).style("display", "block");
+            minPriceTooltip.transition().style("opacity", 0.9).style("display", "block");
             minPriceTooltip.html(tooltipText)
-                .style("left", (d3.event.pageX - 80) + "px")
-                .style("top", (d3.event.pageY + 20) + "px");
+                .style("left", ($(this).position()["left"] - 62) + "px")
+                .style("top", ($(this).position()["top"] + 25) + "px");
         })
         .on("mouseout", function (d) {
             minPriceTooltip.transition().style("opacity", 0).style("display", "none");
@@ -645,7 +698,7 @@ function addMinPricePoint() {
             .attr("x2", xScale(Math.pow(10, pointData[i]["x1"])))
             .attr("y2", yScale(pointData[i]["y1"]))
 			.style("zIndex", 4)
-            .style("stroke", zColor(i))
+            .style("stroke", zColor(pointData[i].category))
             .style("stroke-width", 6)
             .style("opacity", 0.62);
     }
@@ -703,6 +756,8 @@ function updateLine() {
     }
     $("#new_slope").hide();
     $("#new_slope_text").hide();
+	d3.selectAll(".grid_line").style("opacity", 0.62);
+	d3.selectAll(".hline").style("opacity", 0.62);
 
     // Update data
     for (var i = 0; i < data.length; i++) {
@@ -810,10 +865,10 @@ function tooltipMouseover(d) {
     $("#div_tooltip").remove();
     var tooltip = d3.select("#data_visualization").append("div").attr("id", "div_tooltip").attr("class", "tooltip"),
         tooltipText = tooltipUpdate(d);
-    tooltip.transition().style("opacity", 0.62).style("display", "block");
+    tooltip.transition().style("opacity", 0.9).style("display", "block");
     tooltip.html(tooltipText)
-        .style("left", (d3.event.pageX + 20) + "px")
-        .style("top", (d3.event.pageY - 40) + "px");
+		.style("left", ($(this).position()["left"] + 15) + "px")
+		.style("top", ($(this).position()["top"] - 30) + "px");
 }
 // Tooltip mouseout
 function tooltipMouseout(d) {
@@ -824,7 +879,7 @@ function tooltipClick(d) {
     // Identify the ID of selected point
     var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
 	// Identify offset of screen to svg
-	var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
+//	var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
     // Initialize tooltip for clicked points
     var clickTooltip = d3.select("#div_click_tooltip")
         .append("div")
@@ -843,8 +898,8 @@ function tooltipClick(d) {
             .attr("r", 8);
         clickTooltip.transition().style("opacity", 0.62); // activate click tooltip
         clickTooltip.html(tooltipText)
-            .style("left", (window.pageXOffset + matrix.e + 15) + "px")
-            .style("top", (window.pageYOffset + matrix.f - 30) + "px");
+            .style("left", ($(this).position()["left"] + 70) + "px")
+            .style("top", ($(this).position()["top"] + 30) + "px");
     } else {
         // Deselect the clicked point
         d3.select(this)
@@ -910,11 +965,17 @@ function addCrossHair(xCoord, yCoord) {
 
 // Function to initialize visualization
 function initPlot() {
+	var dSlopeName = rawDataObject.dSlopeName,
+		anchorNameX = rawDataObject.anchorName.x,
+		anchorNameY = rawDataObject.anchorName.y,
+		capacityName = rawDataObject.capacityName,
+		minRangeX = rawDataObject.minRangeX,
+		maxRangeX = rawDataObject.maxRangeX;
+	
     // Canvas initialization
     d3.selectAll("svg").remove(); // remove visualization panel
     d3.selectAll(".tooltip").remove(); // remove mouseover tooltip, anchor point & minimum price point tooltip
     d3.selectAll("#div_click_tooltip").remove(); // remove click tooltip
-    $("#upload_status").html(""); // remove upload status text
 
     // Click outside foreignObject will hide it
     $(document).mouseup(function (e) {
@@ -923,34 +984,19 @@ function initPlot() {
             container.hide(); // hide container
             d3.selectAll(".anchor_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all anchor points
             d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
+			d3.selectAll(".grid_line").style("opacity", 0.62); // reset effects of all grid lines
+			d3.selectAll(".hline").style("opacity", 0.62); // reset effects of all horizontal lines
         }
     });
-/*
-    $("#choose_x").val("Customer revenue");
-	$("#choose_y").val("Absolute Px");
-//    $("#choose_y").val("GB Px");
-    $(".checkbox")[0].checked = true;
-    $(".checkbox")[1].checked = true;
-    $(".checkbox")[2].checked = true;
-	$(".checkbox")[3].checked = true;
-    $(".checkbox")[4].checked = true;
-    $(".checkbox")[7].checked = true;
-    $(".checkbox")[12].checked = true;
-	$(".checkbox")[13].checked = true;
-    $(".tooltip_display")[8].checked = true;
-//    $(".tooltip_display")[4].checked = true;
-//    $(".tooltip_display")[6].checked = true;
-*/
+
     // Initialization begins here
-    rawDataObject.currentData = subsetData(rawDataObject.dataObject);	
+    rawDataObject.currentData = subsetData(rawDataObject.buData);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
         alert("Axis not defined!");
     } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
 		$("#customize_field").hide();
         $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
-        setTimeout(function () {
-            $("#error_display").fadeOut("slow");
-        }, 500);
+        setTimeout(function () { $("#error_display").fadeOut("slow"); }, 500);
     } else {
         // Link to data subset
         var data = rawDataObject.currentData;
@@ -972,23 +1018,24 @@ function initPlot() {
 		
 		// Generate discount slope and anchor points if missing, otherwise convert to numerical values
 		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique); // extract unique categories for data subset
+		rawDataObject.uniqueCat = uniqueCat;
 		data.forEach(function (d) {
-			d[rawDataObject.dSlopeName] = typeof(d[rawDataObject.dSlopeName]) == "undefined" ? -0.05 : d[rawDataObject.dSlopeName]; // set discount to -0.05 if missing
-			d[rawDataObject.anchorName.x] = typeof(d[rawDataObject.anchorName.x]) == "undefined" ? rawDataObject.maxRangeX * 0.1 : d[rawDataObject.anchorName.x]; // set anchor x to be maximum of x
+			d[dSlopeName] = typeof(d[dSlopeName]) == "undefined" ? -0.05 : d[dSlopeName]; // set discount to -0.05 if missing
+			d[anchorNameX] = typeof(d[anchorNameX]) == "undefined" ? maxRangeX * 0.05 : d[anchorNameX]; // set anchor x to be maximum of x
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
 					var tempValue = settings.yMin + 0.5 * i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
 					if (settings.yName == rawDataObject.pxGB) { // if y represents price per capacity ...
-						d["AnchorPerGB"] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y]; // set anchor y if missing
-						d["AnchorPerGB"] = !isNaN(d[rawDataObject.anchorName.y]) ? (d[rawDataObject.anchorName.y] / d[rawDataObject.capacityName]) : tempValue; // set anchor y according to actual price 
+						d["AnchorPerGB"] = tempValue; // set price per capacity
 					} else { // if y represents actual price
-						d[rawDataObject.anchorName.y] = typeof(d[rawDataObject.anchorName.y]) == "undefined" ? tempValue : d[rawDataObject.anchorName.y]; // set anchor y if missing
+						d[anchorNameY] = (typeof(d[anchorNameY]) == "undefined") ? tempValue : d[anchorNameY]; // set anchor y if missing
+						d["AnchorPerGB"] = d[anchorNameY] / d[capacityName]; // set price per capacity
 					}
 				}
 			}
-			d[rawDataObject.dSlopeName] =+ d[rawDataObject.dSlopeName]; // convert discount slope to numerical
-            d[rawDataObject.anchorName.x] = +d[rawDataObject.anchorName.x]; // convert anchor x to numerical
-            d[rawDataObject.anchorName.y] = +d[rawDataObject.anchorName.y]; // convert anchor y to numerical
+			d[dSlopeName] =+ d[dSlopeName]; // convert discount slope to numerical
+            d[anchorNameX] = +d[anchorNameX]; // convert anchor x to numerical
+            d[anchorNameY] = +d[anchorNameY]; // convert anchor y to numerical
 		});
 
         // Save settings to global
