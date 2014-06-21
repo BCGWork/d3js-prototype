@@ -90,6 +90,38 @@ function exportToText() {
     downloadLink.click();
 }
 
+// Save current session to local storage
+function saveSession(sessionName) {
+	var storageObject = {};
+	storageObject.storageNames = [$("#choose_x").val(), $("#choose_y").val()],
+	storageObject.storageAxesRange = [$("#input_xmin").val(), $("#input_xmax").val(), $("#input_ymin").val(), $("#input_ymax").val()],
+	storageObject.storageFilters = [],
+	storageObject.storageTooltips = [];
+	$(".checkbox").each(function(i) { this.checked ? storageObject.storageFilters.push(i) : "" });
+	$(".tooltip_display").each(function(i) { this.checked ? storageObject.storageTooltips.push(i) : "" });
+	
+	localStorage.setItem(sessionName, JSON.stringify(storageObject));
+}
+
+// Retrieve previous session to local storage
+function retrieveSession(sessionName) {
+	var storageText = localStorage.getItem(sessionName);
+	var storageObject = JSON.parse(storageText);
+	var storageNames = storageObject.storageNames,
+		storageAxesRange = storageObject.storageAxesRange,
+		storageFilters = storageObject.storageFilters,
+		storageTooltips = storageObject.storageTooltips;
+	
+	$("#choose_x").val(storageNames[0]);
+	$("#choose_y").val(storageNames[1]);
+	$("#input_xmin").val(storageAxesRange[0]);
+	$("#input_xmax").val(storageAxesRange[1]);
+	$("#input_ymin").val(storageAxesRange[2]);
+	$("#input_ymax").val(storageAxesRange[3]);
+	$(".checkbox").each(function(i) { $.inArray(i, storageFilters) > -1 ? this.checked = true : this.checked = false; });
+	$(".tooltip_display").each(function(i) { $.inArray(i, storageTooltips) > -1 ? this.checked = true : this.checked = false; });
+}
+
 // Add change log button
 function changeLog() {
 	var changeLogText = "<h3>Change Log</h3>";
@@ -98,6 +130,9 @@ function changeLog() {
 	v0_40Change += "<li>Established framework to integrate Playbook module.</li>";
 	v0_40Change += "<li>Separated Business Unit from filters and changed underlying logic.</li>";
 	v0_40Change += "<li>Optimized automatic anchor points placement if missing.</li>";
+	v0_40Change += "<li>Clicking on legend will have the option to add competitor price point.</li>";
+	v0_40Change += "<li>Enabled manual overwriting of axes range.</li>";
+	v0_40Change += "<li>Enabled session resumption when switching among Business Units.</li>";
 	v0_40Change += "<li>Fixed a bug causing inconsistent colors for same category when too many categories are visualized.</li>";
 	v0_40Change += "<li>Added &quot;Refresh&quot; button.</li>";
 	v0_40Change += "<li>Increased opacity of mouseover tooltips so that cross-hair won't interfere.</li>";

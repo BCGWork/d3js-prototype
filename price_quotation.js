@@ -42,7 +42,9 @@ function addAskPrice(d) {
 	var divText = "";
     divText += "<div id=new_point_div class=externalTextbox><b>Add Point for:</b><br/>";
 	divText += d + "<br/>";
-	divText += "<select id=add_point_selector><option value='askPrice'>Customer Ask Price</option><option value='newPoint'>New Grid Point</option></select><br/>";
+	divText += "<select id=add_point_selector onchange=adjustNewPointType()><option value='askPrice'>Customer Ask Price</option>";
+	divText += "<option value='newPoint'>New Grid Point</option>";
+	divText += "<option value='compPrice'>Competitor Price</option></select><br/>";
     divText += "<input type='text' id=new_point_coord class=externalTextbox placeholder='enter coordinates' onchange=addNewPoint()></input></div>";
 	
     d3.select("svg").append("foreignObject")
@@ -50,9 +52,18 @@ function addAskPrice(d) {
         .attr("x", ($(".legend rect").attr("x") * 0.62) + "px")
         .attr("y", "50px")
         .attr("width", 300)
-        .attr("height", 100)
+        .attr("height", 150)
         .append("xhtml:div")
         .html(divText);
+}
+
+function adjustNewPointType() {
+	$("#competitor_name_0").remove();
+	if ($("#add_point_selector").val() == "compPrice") {
+		$("#new_point_coord").before("<input type='text' id=competitor_name_0 class=externalTextbox placeholder='enter competitor name'></input><br id=competitor_name_0 />");
+	} else {
+		$("#competitor_name_0").remove();
+	}
 }
 
 // Add new points to grid
@@ -70,6 +81,7 @@ function addNewPoint() {
         yName = settings.yName,
 		format = d3.format(",f"),
 		pointType = $("#add_point_selector").val(),
+		competitorName = $("#competitor_name_0").val(),
         newCoord = $("#new_point_coord").val().split(","),
         newX = parseFloat(newCoord[0]),
         newY = parseFloat(newCoord[1]);
@@ -84,6 +96,14 @@ function addNewPoint() {
 		for (var i = 0; i < pointData.length; i++) {
 			if (pointData[i]["category"] == newPointCategory) {
 				if (pointType == "askPrice") {
+					if (newX == -1 || newY == -1) {
+						alert("Input out of bound!");
+						return;
+					} else {
+						var predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(newX);
+						var gridDev = (newY - predY) / predY;
+					}
+				} else if (pointType == "compPrice") {
 					if (newX == -1 || newY == -1) {
 						alert("Input out of bound!");
 						return;
@@ -110,6 +130,8 @@ function addNewPoint() {
 		// Add new point to svg
 		if (pointType == "askPrice") { // if new customer ask price
 			var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path").attr("d", d3.svg.symbol().type("diamond").size(100));
+		} else if (pointType == "compPrice") {
+			var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path").attr("d", d3.svg.symbol().type("cross").size(100));
 		} else { // if new grid point
 			var newPoint = d3.select("g").append("g").attr("class", "newpoints").append("path").attr("d", d3.svg.symbol().type("square").size(100));
 		}
@@ -122,14 +144,23 @@ function addNewPoint() {
             .on("contextmenu", function () {
 				d3.event.preventDefault(); // prevent right click menu from showing
 				d3.select(this).remove(); // remove dot
+				d3.select("#comp_price_text_" + newX.toString().replace(/\./g, "_") + "_" + newY.toString().replace(/\./g, "_")).remove(); // remove text
 				d3.select("#new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).remove(); // remove associated tooltip
 			})
             .on("mouseover", function () {
-				var tooltipText = (pointType == "askPrice" ? "<u>Customer Ask Price</u><br/>" : "<u>New Grid Point</u><br/>");
-				tooltipText += (pointType == "askPrice" ? xName + ": " + format(newX) + "<br/>" : "Predicted " + xName + ": " + format(predX) + "<br/>");
-				tooltipText += (pointType == "askPrice" ? yName + ": " + newY.toFixed(2) + "<br/>" : "");
-				tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>";
-				tooltipText += (pointType == "askPrice" ? "Grid Deviation: " + gridDev.toFixed(2) : "");
+				var tooltipText = "";
+				if (pointType == "askPrice") {
+					tooltipText += "<u>Customer Ask Price</u><br/>" + xName + ": " + format(newX) + "<br/>" + yName + ": " + newY.toFixed(2) + "<br/>";
+					tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>" + "Grid Deviation: " + gridDev.toFixed(2);
+				} else if (pointType == "compPrice") {
+					tooltipText += "<u>Competitor Price</u><br/>";
+					tooltipText += (competitorName == "" ? "" : "Competitor Name: " + competitorName + "<br/>");
+					tooltipText += "Competitor Revenue: " + format(newX) + "<br/>" + "Competitor Price: " + newY.toFixed(2) + "<br/>";
+					tooltipText += "Predicted Competitor Price: " + predY.toFixed(2) + "<br/>" + "Grid Deviation: " + gridDev.toFixed(2);
+				} else {
+					tooltipText += "<u>New Grid Point</u><br/>" + "Predicted " + xName + ": " + format(predX) + "<br/>";
+					tooltipText += "Predicted " + yName + ": " + predY.toFixed(2) + "<br/>";
+				}
 				newPointTooltip.attr("id", "new_point_tooltip_" + newCoord[0].replace(/\.| |-/g, "_") + "_" + newCoord[1].replace(/\.| |-/g, "_")).transition().style("opacity", 0.9).style("display", "block");
 				newPointTooltip.html(tooltipText)
 					.style("left", ($(this).position()["left"] + 15) + "px")
@@ -138,8 +169,16 @@ function addNewPoint() {
             .on("mouseout", function () {
 				newPointTooltip.transition().style("opacity", 0).style("display", "none");
 			});
-		if (pointType == "askPrice") {
+		if ($.inArray(pointType, ["askPrice", "compPrice"]) > -1) {
 			if (!(newX == -1 || newY == -1)) {
+			
+				var textLabel = d3.select(".newpoints").append("text").text(competitorName)
+					.attr("id", "comp_price_text_" + newX.toString().replace(/\./g, "_") + "_" + newY.toString().replace(/\./g, "_"))
+					.attr("fill", $("#legend_" + newPointCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
+					.style("font-size", "14px")
+					.style("stroke", "black")
+					.style("stroke-width", "0.5px");
+				textLabel.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + (xScale(newX) + 12) + "," + (yScale(newY) + 5) + ")";});
 				newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(newX) + "," + yScale(newY) + ")";});
 			}
 			newPoint.on("click", function (d) {
@@ -150,16 +189,16 @@ function addNewPoint() {
 				var divText = "";
 				divText += "<div id=competitor_price_div class=externalTextbox><b>Add Competitor Price for:</b><br/>";
 				divText += newPointCategory + "<br/>";
-				divText += "Revenue: " + format(newX) + "<br/>";
-				divText += "<input type='text' id=competitor_name class=externalTextbox placeholder='enter competitor name'></input>";
+				divText += "Competitor Revenue: " + format(newX) + "<br/>";
+				divText += "<input type='text' id=competitor_name class=externalTextbox placeholder='enter competitor name'></input><br/>";
 				divText += "<input type='text' id=competitor_price class=externalTextbox placeholder='enter competitor price' onchange=addCompetitorPrice()></input></div>";
 				
 				d3.select("svg").append("foreignObject")
 					.attr("class", "externalObject")
 					.attr("x", (xScale(newX) - 10) + "px")
 					.attr("y", (yScale(newY) - 60) + "px")
-					.attr("width", 200)
-					.attr("height", 200)
+					.attr("width", 300)
+					.attr("height", 150)
 					.append("xhtml:div")
 					.html(divText);
 			})
@@ -217,6 +256,7 @@ function addCompetitorPrice () {
             .on("mouseover", function () {
 				var tooltipText = "<u>Competitor Price</u><br/>";
 				tooltipText += (competitorName == "" ? "" : "Competitor Name: " + competitorName + "<br/>");
+				tooltipText += "Competitor Revenue: " + format(competitorRevenue) + "<br/>";
 				tooltipText += "Competitor Price: " + competitorPrice.toFixed(2) + "<br/>";
 				tooltipText += "Predicted Competitor Price: " + predY.toFixed(2) + "<br/>";
 				tooltipText += "Grid Deviation: " + gridDev.toFixed(2);

@@ -63,6 +63,10 @@ function readData(file) {
         var csv = event.target.result;
         rawDataObject.dataObject = $.csv.toObjects(csv);
 		defineBu(rawDataObject.buName);
+		localStorage.clear();
+		
+		$("#control_panel").hide();
+		$("#visualization_tabs").hide();
     };
     reader.onerror = function () {
         alert("Unable to read " + file.fileName);
@@ -72,36 +76,69 @@ function readData(file) {
 // Populate drop down menu for business unit
 function defineBu(name) {
     $("#choose_bu").empty();
-    $("#choose_bu").append("<option value=''>choose a business unit</option>");
-    var buList = extractValue(rawDataObject.dataObject, name).filter(detectUnique);
-    for (var i = 0; i < buList.length; i++) {
-		$("#choose_bu").append("<option value='" + buList[i] + "'>Business Unit: " + buList[i] + "</option>");
-    }
+    $("#choose_bu").append("<option value=''>--- choose business unit ---</option>");
+	if (typeof(rawDataObject.dataObject[0][name]) == "undefined") {
+		$("#choose_bu").append("<option value='default Business Unit'>Proceed with default Business Unit</option>");
+	} else {
+		var buList = extractValue(rawDataObject.dataObject, name).filter(detectUnique);
+		for (var i = 0; i < buList.length; i++) {
+			$("#choose_bu").append("<option value='" + buList[i] + "'>Business Unit: " + buList[i] + "</option>");
+		}
+	}
     $("#choose_bu").show();
 }
 
 // Populate filters and axes selector
 function popControl() {
+	var data = rawDataObject.dataObject.slice(),
+		currentBu = rawDataObject.currentBu,
+		newBu = $("#choose_bu").val();
+		
+	saveSession(currentBu);
     d3.select("svg").remove();
 	d3.select("#div_click_tooltip").remove();
+	$("#input_xmin").val("");
+	$("#input_xmax").val("");
+	$("#input_ymin").val("");
+	$("#input_ymax").val("");
 	
-	var data = rawDataObject.dataObject.slice(),
-		buName = rawDataObject.buName;
-	
-	for (var i = data.length - 1; i >= 0; i--) {
-		if (data[i][buName] != $("#choose_bu").val()) {
-			data.splice(i, 1);
+	if (newBu != "default Business Unit") {
+		var buName = rawDataObject.buName;
+		for (var i = data.length - 1; i >= 0; i--) {
+			if (data[i][buName] != $("#choose_bu").val()) {
+				data.splice(i, 1);
+			}
 		}
+		rawDataObject.buData = data;
+	} else {
+		rawDataObject.buData = data;
 	}
-	rawDataObject.buData = data;
 	
 	defineX(Object.keys(data[0]));
 	defineY(Object.keys(data[0]));
 	defineTooltip(Object.keys(data[0]));
 	createCheckBox(data);
+	$("#control_panel").show();
 	$("#visualization_tabs").show();
 	$("#visualization_tabs").tabs({ selected: 1 });
-	
+	$("#overwrite_range span").fadeOut(0, function() { $(this).text("Overwrite axes range: ").fadeIn(500); });
+	$("#input_xmin").attr("placeholder", "enter minimum x");
+	$("#input_xmax").attr("placeholder", "enter maximum x");
+	$("#input_ymin").attr("placeholder", "enter minimum y");
+	$("#input_ymax").attr("placeholder", "enter maximum y");
+	$("#overwrite_range").children().prop("disabled", false);
+	$("#overwrite_range").show();
+
+	if (typeof(localStorage[newBu]) != "undefined") {
+		var resumeSession = confirm("Resume previous session for " + newBu + "?");
+		if (resumeSession == true) {
+			retrieveSession(newBu);
+			initPlot();
+		} else {
+			initPlot();
+		}
+	}
+/*
     $("#choose_x").val("Customer revenue");
 	$("#choose_y").val("Absolute Px");
 //    $("#choose_y").val("GB Px");
@@ -113,12 +150,13 @@ function popControl() {
     $(".tooltip_display")[7].checked = true;
 //    $(".tooltip_display")[9].checked = true;
     $(".tooltip_display")[10].checked = true;
+*/
 }
 
 // Define x-axis variable
 function defineX(dataHeader) {
     $("#choose_x").empty();
-    $("#choose_x").append("<option value=''>choose variable x</option>");
+    $("#choose_x").append("<option value=''>--- choose x ---</option>");
     var p = dataHeader.length;
     for (var i = 0; i < p; i++) {
         if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
@@ -134,7 +172,7 @@ function defineX(dataHeader) {
 // Define y-axis variable
 function defineY(dataHeader) {
     $("#choose_y").empty();
-    $("#choose_y").append("<option value=''>choose variable y</option>");
+    $("#choose_y").append("<option value=''>--- choose y ---</option>");
     var p = dataHeader.length;
     for (var i = 0; i < p; i++) {
         if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
@@ -279,6 +317,8 @@ function subsetData(input_data) {
 
 // Data visualization window
 function scatterPlot(data) {
+	$("#overwrite_range span").fadeOut(500, function() { $(this).text("Axes locked! ").fadeIn(500); });
+	$("#overwrite_range").children().prop("disabled", true);
     // Initialize settings
     var margin = rawDataObject.margin,
         width = rawDataObject.width,
@@ -319,7 +359,8 @@ function scatterPlot(data) {
             return d[yName];
         },
         yScale = d3.scale.linear()
-        .domain([yMin - yMin * 0.1, yMax + yMax * 0.15])
+		.domain([yMin, yMax])
+        .domain([yMin * 0.99, yMax * 1.01])
         .range([height, 0])
         .nice(),
         yAxis = d3.svg.axis()
@@ -969,8 +1010,13 @@ function initPlot() {
 		anchorNameX = rawDataObject.anchorName.x,
 		anchorNameY = rawDataObject.anchorName.y,
 		capacityName = rawDataObject.capacityName,
-		minRangeX = rawDataObject.minRangeX,
-		maxRangeX = rawDataObject.maxRangeX;
+		format = d3.format(",f"),
+		inputMinX = $("#input_xmin").val(),
+		inputMaxX = $("#input_xmax").val(),
+		inputMinY = $("#input_ymin").val(),
+		inputMaxY = $("#input_ymax").val();
+		
+	rawDataObject.currentBu = $("#choose_bu").val();
 	
     // Canvas initialization
     d3.selectAll("svg").remove(); // remove visualization panel
@@ -992,7 +1038,7 @@ function initPlot() {
     // Initialization begins here
     rawDataObject.currentData = subsetData(rawDataObject.buData);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
-        alert("Axis not defined!");
+        alert("Please define axes!");
     } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
 		$("#customize_field").hide();
         $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
@@ -1012,23 +1058,43 @@ function initPlot() {
             d[settings.yName] = +d[settings.yName];
 		});
 
-        // Determine smallest and largest values for x and y
+        // Determine smallest and largest values for y
+		settings.xMin = d3.min(extractValue(data, settings.xName));
+		settings.xMax = d3.max(extractValue(data, settings.xName));
         settings.yMin = d3.min(extractValue(data, settings.yName));
         settings.yMax = d3.max(extractValue(data, settings.yName));
+		if (isNaN(inputMinX) || isNaN(inputMaxX) || isNaN(inputMinY) || isNaN(inputMaxY)) {
+			alert("Invalid input in axes range!");
+			return;
+		} else if (parseFloat(inputMinX) > parseFloat(inputMaxX) || parseFloat(inputMinY) > parseFloat(inputMaxY)) {
+			alert("Axes maximum range must be greater than minimum!");
+			return;
+		} else {
+			rawDataObject.minRangeX = (inputMinX == "" ? 100 : parseFloat(inputMinX));
+			rawDataObject.maxRangeX = (inputMaxX == "" ? 1000000000 : parseFloat(inputMaxX));
+			settings.yMin = (inputMinY == "" ? settings.yMin : parseFloat(inputMinY));
+			settings.yMax = (inputMaxY == "" ? settings.yMax : parseFloat(inputMaxY));
+			
+		}
+		$("#input_xmin").attr("placeholder", format(rawDataObject.minRangeX));
+		$("#input_xmax").attr("placeholder", format(rawDataObject.maxRangeX));
+		$("#input_ymin").attr("placeholder", settings.yMin.toFixed(2));
+		$("#input_ymax").attr("placeholder", settings.yMax.toFixed(2));
+		rawDataObject.minPriceX = rawDataObject.minRangeX * 100;
 		
 		// Generate discount slope and anchor points if missing, otherwise convert to numerical values
 		var uniqueCat = extractValue(data, settings.zName).filter(detectUnique); // extract unique categories for data subset
 		rawDataObject.uniqueCat = uniqueCat;
 		data.forEach(function (d) {
-			d[dSlopeName] = typeof(d[dSlopeName]) == "undefined" ? -0.05 : d[dSlopeName]; // set discount to -0.05 if missing
-			d[anchorNameX] = typeof(d[anchorNameX]) == "undefined" ? maxRangeX * 0.05 : d[anchorNameX]; // set anchor x to be maximum of x
+			d[dSlopeName] = typeof(d[dSlopeName]) == "undefined" ? -0.01 : d[dSlopeName]; // set discount to -0.05 if missing
+			d[anchorNameX] = typeof(d[anchorNameX]) == "undefined" ? settings.xMax * 0.8 : d[anchorNameX]; // set anchor x to be maximum of x
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
 					var tempValue = settings.yMin + 0.5 * i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
 					if (settings.yName == rawDataObject.pxGB) { // if y represents price per capacity ...
 						d["AnchorPerGB"] = tempValue; // set price per capacity
 					} else { // if y represents actual price
-						d[anchorNameY] = (typeof(d[anchorNameY]) == "undefined") ? tempValue : d[anchorNameY]; // set anchor y if missing
+						d[anchorNameY] = (typeof(d[anchorNameY]) == "undefined" || isNaN(d[anchorNameY])) ? tempValue : d[anchorNameY]; // set anchor y if missing
 						d["AnchorPerGB"] = d[anchorNameY] / d[capacityName]; // set price per capacity
 					}
 				}

@@ -26,9 +26,6 @@
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
         rawDataObject.userLog = "";
-        rawDataObject.minPriceX = 10000;
-		rawDataObject.minRangeX = 100;
-		rawDataObject.maxRangeX = 100000000000;
         rawDataObject.margin = {
             top: 50,
             right: 150,
@@ -67,10 +64,9 @@
 		<button id="refresh_grid" onclick="initPlot()">Refresh</button>
         <button id="print_grid" onclick="printGrid()">View/Print Grid</button>
         <br/>
+		<button id="export_data" onclick="exportToText()">Export Data</button>
         <button id="log_data" onclick="logOutput()">Log Data</button>
         <output id="log_status"></output>
-        <br/>
-		<button id="export_data" onclick="exportToText()">Export Data</button>
 		<hr/>
         <div id="choose_variables">
             <select id="choose_x" style="display:none"></select>
@@ -101,10 +97,18 @@
 				<select id="customer_filter" onchange="filterCustomer()"></select>
 				<button id="click_all" onclick="clickAll()">Click All</button>
 			</div>
+			<br/>
+			<div id="overwrite_range" style="display:none">
+				<span>Overwrite axes range: </span>
+				<input type="text" id="input_xmin" placeholder="enter minimum x">
+				<input type="text" id="input_xmax" placeholder="enter maximum x">
+				<input type="text" id="input_ymin" placeholder="enter minimum y">
+				<input type="text" id="input_ymax" placeholder="enter maximum y">
+			</div>
 		</div>
 		<div id="playbook_viz" class="visualization_div">
 			<h3>Playbook</h3>
-			Place holder for playbook module
+			<span>Place holder for playbook module</span>
 		<div>
 	</div>
 <!--
