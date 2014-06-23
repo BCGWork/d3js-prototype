@@ -19,18 +19,7 @@ function extractValue(object, key) {
 function detectUnique(value, index, self) {
 	return self.indexOf(value) == index;
 }
-/*
-// Duplicate grid and open in new tab
-function clonePage() {
-	var head = $("head").html(),
-		body = $("body").html(),
-		newWindow = window.open();
-	newWindow.document.write("<html><head>");
-	newWindow.document.write(head + "</head><body>");
-	newWindow.document.write(body + "</body>");
-	newWindow.document.write("</html>");
-}
-*/
+
 // Print grid windows
 function printGrid() {
     var width = $("svg").attr("width"), // get svg width
@@ -60,7 +49,7 @@ function logOutput() {
     }
 
     // Set log status in div
-    $("#log_status").html("Data Saved!").show();
+    $("#log_status").html("<font color='blue'>Data Saved!</font>").show();
     setTimeout(function () {
         $("#log_status").fadeOut("slow");
     }, 800);
@@ -122,12 +111,21 @@ function retrieveSession(sessionName) {
 	$(".tooltip_display").each(function(i) { $.inArray(i, storageTooltips) > -1 ? this.checked = true : this.checked = false; });
 }
 
+// Switch back to Grid
+function switchToGrid() {
+	$("#playbook_choose_variables").hide();
+	$("#pb_svg").hide();
+	
+	$("#choose_variables").show();
+	$("#grid_svg").show();
+}
+
 // Add change log button
 function changeLog() {
 	var changeLogText = "<h3>Change Log</h3>";
 
 	var v0_40Change = "<h4><u>v0.4</u></h4><ol>";
-	v0_40Change += "<li>Established framework to integrate Playbook module.</li>";
+	v0_40Change += "<li>Established framework and integrate Playbook module.</li>";
 	v0_40Change += "<li>Separated Business Unit from filters and changed underlying logic.</li>";
 	v0_40Change += "<li>Optimized automatic anchor points placement if missing.</li>";
 	v0_40Change += "<li>Clicking on legend will have the option to add competitor price point.</li>";

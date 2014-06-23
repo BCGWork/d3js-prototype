@@ -51,7 +51,7 @@ function handleFileSelect(evt) {
     $("#upload_status").html(output);
 	$("#upload_status").show();
 	setTimeout(function () { $("#upload_status").fadeOut("slow"); }, 800);
-    d3.select("svg").remove();
+    d3.select("#grid_svg").remove();
 	d3.select("#div_click_tooltip").remove();
 }
 
@@ -95,7 +95,7 @@ function popControl() {
 		newBu = $("#choose_bu").val();
 		
 	saveSession(currentBu);
-    d3.select("svg").remove();
+    d3.select("#grid_svg").remove();
 	d3.select("#div_click_tooltip").remove();
 	$("#input_xmin").val("");
 	$("#input_xmax").val("");
@@ -138,18 +138,20 @@ function popControl() {
 			initPlot();
 		}
 	}
+
+	var xName = rawDataObject.xList[0];
+    $("#choose_x").val(xName);
+
 /*
-    $("#choose_x").val("Customer revenue");
 	$("#choose_y").val("Absolute Px");
-//    $("#choose_y").val("GB Px");
     $(".checkbox")[0].checked = true;
     $(".checkbox")[1].checked = true;
     $(".checkbox")[2].checked = true;
 	$(".checkbox")[5].checked = true;
     $(".checkbox")[6].checked = true;
+    $(".tooltip_display")[6].checked = true;
     $(".tooltip_display")[7].checked = true;
-//    $(".tooltip_display")[9].checked = true;
-    $(".tooltip_display")[10].checked = true;
+    $(".tooltip_display")[9].checked = true;
 */
 }
 
@@ -157,15 +159,10 @@ function popControl() {
 function defineX(dataHeader) {
     $("#choose_x").empty();
     $("#choose_x").append("<option value=''>--- choose x ---</option>");
-    var p = dataHeader.length;
-    for (var i = 0; i < p; i++) {
-        if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
-            var varOption = document.createElement("option");
-            varOption.text = "x: " + dataHeader[i];
-            varOption.value = dataHeader[i];
-            document.getElementById("choose_x").options.add(varOption);
-        }
-    }
+	var xList = rawDataObject.xList;
+	for (var i = 0; i < xList.length; i++) {
+		$("#choose_x").append("<option value='" + xList[i] + "'>" + xList[i] + "</option>");
+	}
     $("#choose_x").show();
 }
 
@@ -173,15 +170,10 @@ function defineX(dataHeader) {
 function defineY(dataHeader) {
     $("#choose_y").empty();
     $("#choose_y").append("<option value=''>--- choose y ---</option>");
-    var p = dataHeader.length;
-    for (var i = 0; i < p; i++) {
-        if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
-            var varOption = document.createElement("option");
-            varOption.text = "y: " + dataHeader[i];
-            varOption.value = dataHeader[i];
-            document.getElementById("choose_y").options.add(varOption);
-        }
-    }
+	var yList = rawDataObject.yList;
+	for (var i = 0; i < yList.length; i++) {
+		$("#choose_y").append("<option value='" + yList[i] + "'>" + yList[i] + "</option>");
+	}
     $("#choose_y").show();
 }
 
@@ -189,8 +181,14 @@ function defineY(dataHeader) {
 function defineTooltip(dataHeader) {
     $(".tooltip_label").remove();
     $("#tooltip_title").show();
+	var tooltipHideList = ["Category", "AnchorPerGB"];
+	tooltipHideList.push(rawDataObject.anchorName.x);
+	tooltipHideList.push(rawDataObject.anchorName.y);
+	tooltipHideList.push(rawDataObject.dSlopeName);
+	tooltipHideList.push(rawDataObject.buName);
+	
     for (var i = 0; i < dataHeader.length; i++) {
-//        if ($.inArray(dataHeader[i].toLowerCase().substring(0, 6), rawDataObject.hideList) == -1) {
+        if ($.inArray(dataHeader[i], tooltipHideList) == -1) {
             var tooltipLabel = $("<label class=tooltip_label />").html(dataHeader[i])
                 .prepend($("<input/>")
                     .attr({
@@ -200,7 +198,7 @@ function defineTooltip(dataHeader) {
                         value: dataHeader[i]
                     }));
             $("#tooltip_checkbox").append(tooltipLabel).append("<br class=tooltip_label />");
-//        }
+        }
     }
     $("#selectall_label").show();
 }
@@ -308,7 +306,7 @@ function subsetData(input_data) {
         data[i]["Category"] = "";
         for (filterKey in data[i]) {
             if (filterKey.toLowerCase().substring(0, 6) == "filter") {
-                data[i]["Category"] = data[i]["Category"] + data[i][filterKey] + "; ";
+                data[i]["Category"] += data[i][filterKey] + "; ";
             }
         }
     }
@@ -317,7 +315,7 @@ function subsetData(input_data) {
 
 // Data visualization window
 function scatterPlot(data) {
-	$("#overwrite_range span").fadeOut(500, function() { $(this).text("Axes locked! ").fadeIn(500); });
+	$("#overwrite_range span").fadeOut(500, function() { $(this).html("<font color='blue'>Axes locked! </font>").fadeIn(500); });
 	$("#overwrite_range").children().prop("disabled", true);
     // Initialize settings
     var margin = rawDataObject.margin,
@@ -384,7 +382,8 @@ function scatterPlot(data) {
 
     // attach svg to canvas
     var svgContainer = d3.select("#data_visualization").append("svg")
-        .attr("width", $("#data_visualization").width() - 20)
+		.attr("id", "grid_svg")
+        .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom);
 	
 	var svg = svgContainer.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")").style("pointer-events", "all");
@@ -553,7 +552,7 @@ function addLine(data) {
     // Plot through for loop
     var pointData = [];
     for (var i = 0; i < lineVals.length; i++) {
-        if (yName == rawDataObject.pxGB) {
+        if (yName == rawDataObject.yList[1]) {
             lineVals[i].anchorY = lineVals[i].anchorYperGB;
         } else {
             lineVals[i].anchorY = lineVals[i].anchorYpx;
@@ -585,7 +584,7 @@ function addLine(data) {
                 var divText = "";
                 divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(2) + "</b></div>";
                 divText += "<input type='text' id=new_slope class=externalTextbox placeholder='enter new discount slope' onchange=updateLine()></input>";
-                d3.select("svg").append("foreignObject")
+                d3.select("#grid_svg").append("foreignObject")
                     .attr("class", "externalObject")
                     .attr("x", (d3.mouse(this)[0] - 20) + "px")
                     .attr("y", (d3.mouse(this)[1] - 10) + "px")
@@ -653,7 +652,7 @@ function addAnchorPoints() {
             divText += "(" + format(Math.pow(10, d["x2"])) + ", " + d["y2"].toFixed(2) + ")</b></div>";
             divText += "<input type='text' id=new_anchor class=externalTextbox placeholder='enter new coordinates' onchange=updateAnchor()></input>";
             rawDataObject.selectedAnchorId = d3.select(this).attr("id");
-            d3.select("svg").append("foreignObject")
+            d3.select("#grid_svg").append("foreignObject")
                 .attr("class", "externalObject")
                 .attr("x", (d3.mouse(this)[0] - 20) + "px")
                 .attr("y", (d3.mouse(this)[1] - 15) + "px")
@@ -718,7 +717,7 @@ function addMinPricePoint() {
             divText += "<div id=new_minx_text class=externalTextbox><b>Current Minimum Price:<br/>";
             divText += format(rawDataObject.minPriceX) + "</b></div>";
             divText += "<input type='text' id=new_minx class=externalTextbox placeholder='enter new minimum price' onchange=updateMinX()></input>";
-            d3.select("svg").append("foreignObject")
+            d3.select("#grid_svg").append("foreignObject")
                 .attr("class", "externalObject")
                 .attr("x", (d3.mouse(this)[0] - 20) + "px")
                 .attr("y", (d3.mouse(this)[1] - 15) + "px")
@@ -804,7 +803,7 @@ function updateLine() {
     for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < pointData.length; j++) {
             if (data[i]["Category"] == pointData[j]["category"]) {
-                if (yName == rawDataObject.pxGB) {
+                if (yName == rawDataObject.yList[1]) {
                     data[i][updateField[1]] = pointData[j]["intercept"] + pointData[j]["slope"] * log10(tempData[i][xName]);
                     data[i][updateField[0]] = tempData[i][updateField[1]] * parseInt(tempData[i][capacity]);
                     data[i][updateField[2]] = (tempData[i][yName] - tempData[i][updateField[1]]) / tempData[i][updateField[1]];
@@ -1019,7 +1018,7 @@ function initPlot() {
 	rawDataObject.currentBu = $("#choose_bu").val();
 	
     // Canvas initialization
-    d3.selectAll("svg").remove(); // remove visualization panel
+    d3.selectAll("#grid_svg").remove(); // remove visualization panel
     d3.selectAll(".tooltip").remove(); // remove mouseover tooltip, anchor point & minimum price point tooltip
     d3.selectAll("#div_click_tooltip").remove(); // remove click tooltip
 
@@ -1070,7 +1069,7 @@ function initPlot() {
 			alert("Axes maximum range must be greater than minimum!");
 			return;
 		} else {
-			rawDataObject.minRangeX = (inputMinX == "" ? 100 : parseFloat(inputMinX));
+			rawDataObject.minRangeX = (inputMinX == "" ? 10000 : parseFloat(inputMinX));
 			rawDataObject.maxRangeX = (inputMaxX == "" ? 1000000000 : parseFloat(inputMaxX));
 			settings.yMin = (inputMinY == "" ? settings.yMin : parseFloat(inputMinY));
 			settings.yMax = (inputMaxY == "" ? settings.yMax : parseFloat(inputMaxY));
@@ -1091,7 +1090,7 @@ function initPlot() {
 			for (var i = 0; i < uniqueCat.length; i++) {
 				if (d[settings.zName] == uniqueCat[i]) {
 					var tempValue = settings.yMin + 0.5 * i * (settings.yMax - settings.yMin) / uniqueCat.length; // calculate values of anchor y 
-					if (settings.yName == rawDataObject.pxGB) { // if y represents price per capacity ...
+					if (settings.yName == rawDataObject.yList[1]) { // if y represents price per capacity ...
 						d["AnchorPerGB"] = tempValue; // set price per capacity
 					} else { // if y represents actual price
 						d[anchorNameY] = (typeof(d[anchorNameY]) == "undefined" || isNaN(d[anchorNameY])) ? tempValue : d[anchorNameY]; // set anchor y if missing

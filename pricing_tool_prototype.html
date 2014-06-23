@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <title>Pricing Grid Visualization</title>
-    <link rel="stylesheet" type="text/css" href="styles.css"></link>
-	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css"></link>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css">
     <script type="text/javascript" src="library/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="library/jquery.csv-0.71.min.js"></script>
     <script type="text/javascript" src="library/d3.min.js"></script>
@@ -14,8 +14,8 @@
     <script type="text/javascript">
         // Declare global variables
         var rawDataObject = {};
-        rawDataObject.hideList = ["filter", "anchor", "dslope"];
-        rawDataObject.pxGB = "GB Px";
+		rawDataObject.xList = ["Customer revenue"];
+		rawDataObject.yList = ["Absolute Px", "GB Px"];
         rawDataObject.updateField = ["Absolute grid Px", "GB grid Px", "Grid deviation"];
         rawDataObject.anchorName = {
             x: "Anchor revenue",
@@ -25,6 +25,9 @@
 		rawDataObject.capacityName = "Filter - Capacity";
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
+		rawDataObject.pbHideList = ["Filter - Source"];
+		rawDataObject.pbXList = ["Overall Market Share", "Relative Share"];
+		rawDataObject.pbYList = ["Grid deviation"];
         rawDataObject.userLog = "";
         rawDataObject.margin = {
             top: 50,
@@ -39,6 +42,7 @@
 	<script type="text/javascript" src="function_library.js"></script>
 	<script type="text/javascript" src="grid_visualization.js"></script>
 	<script type="text/javascript" src="price_quotation.js"></script>
+	<script type="text/javascript" src="playbook.js"></script>
 </head>
 
 <body>
@@ -50,7 +54,7 @@
     <hr/>
     <div id"user_inputs">
         <h3>Data Input</h3>
-        <input id="files" type="file" name="files[]"></input>
+        <input id="files" type="file" name="files[]">
         <output id="upload_status"></output>
 		<br/><br/>
 		<select id="choose_bu" onchange="popControl()" style="display:none"></select>
@@ -58,9 +62,6 @@
     <hr/>
     <div id="control_panel" style="width:20%; float:left">
         <h3>Control Panel</h3>
-		<!--
-		<button id="clone_page" onclick="clonePage()">Duplicate Grid</button>
-		-->
 		<button id="refresh_grid" onclick="initPlot()">Refresh</button>
         <button id="print_grid" onclick="printGrid()">View/Print Grid</button>
         <br/>
@@ -71,6 +72,10 @@
         <div id="choose_variables">
             <select id="choose_x" style="display:none"></select>
             <select id="choose_y" style="display:none"></select>
+        </div>
+        <div id="playbook_choose_variables" style="display:none" onchange="createPlaybook()">
+            <select id="choose_x_pb"></select>
+            <select id="choose_y_pb"></select>
         </div>
         <div id="filter_checkbox" style="width: 50%; float:left" onchange="initPlot()"></div>
         <div id="tooltip_checkbox" style="width: 50%; float:right">
@@ -86,8 +91,8 @@
     </div>
 	<div id="visualization_tabs" style="width:79%; float:right; display:none">
 		<ul>
-			<li><a href="#data_visualization">Grid Visualization</a></li>
-			<li><a href="#playbook_viz">Playbook</a></li>
+			<li><a href="#data_visualization" onclick="switchToGrid()">Grid Visualization</a></li>
+			<li><a href="#playbook_viz" onclick="initPlaybook()">Playbook</a></li>
 		</ul>
 		<br/>
 		<div id="data_visualization" class="visualization_div">
@@ -108,8 +113,8 @@
 		</div>
 		<div id="playbook_viz" class="visualization_div">
 			<h3>Playbook</h3>
-			<span>Place holder for playbook module</span>
-		<div>
+            <select id="catDropDown" onchange="pbFilterCustomer()"></select>
+		</div>
 	</div>
 <!--
 	<script type="text/javascript" src="time_bomb.js"></script>
