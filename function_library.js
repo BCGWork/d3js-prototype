@@ -120,6 +120,16 @@ function switchToGrid() {
 	$("#grid_svg").show();
 }
 
+function updateAllSvg() {
+	rawDataObject.currentData = subsetData(rawDataObject.buData);
+
+	initPlot();
+	if ((typeof (rawDataObject.currentData) != "undefined") & (rawDataObject.currentData.length > 0) & ($("#choose_x_pb").val() !== null) & ($("#choose_y_pb").val() !== null)) {
+		createPbCategory(rawDataObject.currentData);
+		createPlaybook();
+	}
+}
+
 // Add change log button
 function changeLog() {
 	var changeLogText = "<h3>Change Log</h3>";
@@ -137,6 +147,7 @@ function changeLog() {
 	v0_40Change += "<li>Refined cross-hair area during mouse movement on x and y axes.</li>";
 	v0_40Change += "<li>Browser resolution will now be detected and used for positioning and scaling.</li>";
 	v0_40Change += "<li>Clicking on a grid line will highlight it and gray out the rest.</li>";
+	v0_40Change += "<li>Extended expiration date to 2014-07-07.</li>";
 	v0_40Change += "</ol>";
 	
 	var v0_30Change = "<h4><u>v0.3</u></h4><ol>";

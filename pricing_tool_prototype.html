@@ -15,19 +15,20 @@
         // Declare global variables
         var rawDataObject = {};
 		rawDataObject.xList = ["Customer revenue"];
-		rawDataObject.yList = ["Absolute Px", "GB Px"];
-        rawDataObject.updateField = ["Absolute grid Px", "GB grid Px", "Grid deviation"];
+		rawDataObject.yList = ["Price per Unit", "Price per GB"];
+        rawDataObject.updateField = ["Grid Price", "Grid Price per GB", "Grid deviation"];
         rawDataObject.anchorName = {
             x: "Anchor revenue",
-            y: "Anchor Px"
+            y: "Anchor price"
         };
 		rawDataObject.buName = "Business Unit";
-		rawDataObject.capacityName = "Filter - Capacity";
+		rawDataObject.capacityName = "Filter Capacity";
 		rawDataObject.customerName = "Customer";
         rawDataObject.dSlopeName = "DSlope";
-		rawDataObject.pbHideList = ["Filter - Source"];
-		rawDataObject.pbXList = ["Overall Market Share", "Relative Share"];
+		rawDataObject.pbHideList = ["Filter Source", "Filter Fiscal Qtr"];
+		rawDataObject.pbXList = ["TAM"];
 		rawDataObject.pbYList = ["Grid deviation"];
+		rawDataObject.pbZList = ["Customer revenue", "Product revenue"];
         rawDataObject.userLog = "";
         rawDataObject.margin = {
             top: 50,
@@ -62,7 +63,7 @@
     <hr/>
     <div id="control_panel" style="width:20%; float:left">
         <h3>Control Panel</h3>
-		<button id="refresh_grid" onclick="initPlot()">Refresh</button>
+		<button id="refresh_grid" onclick="updateAllSvg()">Refresh</button>
         <button id="print_grid" onclick="printGrid()">View/Print Grid</button>
         <br/>
 		<button id="export_data" onclick="exportToText()">Export Data</button>
@@ -76,8 +77,9 @@
         <div id="playbook_choose_variables" style="display:none" onchange="createPlaybook()">
             <select id="choose_x_pb"></select>
             <select id="choose_y_pb"></select>
+			<select id="choose_z_pb"></select>
         </div>
-        <div id="filter_checkbox" style="width: 50%; float:left" onchange="initPlot()"></div>
+        <div id="filter_checkbox" style="width: 50%; float:left" onchange="updateAllSvg()"></div>
         <div id="tooltip_checkbox" style="width: 50%; float:right">
             <br/>
             <div id="tooltip_title" style="display:none"><b>Tooltip Settings</b>
@@ -96,7 +98,6 @@
 		</ul>
 		<br/>
 		<div id="data_visualization" class="visualization_div">
-			<h3>Grid Visualization</h3>
 			<output id="error_display"></output>
 			<div id="customize_field" style="display:none">
 				<select id="customer_filter" onchange="filterCustomer()"></select>
@@ -112,13 +113,12 @@
 			</div>
 		</div>
 		<div id="playbook_viz" class="visualization_div">
-			<h3>Playbook</h3>
             <select id="catDropDown" onchange="pbFilterCustomer()"></select>
 		</div>
 	</div>
-<!--
+
 	<script type="text/javascript" src="time_bomb.js"></script>
--->
+
 </body>
 
 </html>

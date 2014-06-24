@@ -126,7 +126,6 @@ function popControl() {
 	$("#input_xmax").attr("placeholder", "enter maximum x");
 	$("#input_ymin").attr("placeholder", "enter minimum y");
 	$("#input_ymax").attr("placeholder", "enter maximum y");
-	$("#overwrite_range").children().prop("disabled", false);
 	$("#overwrite_range").show();
 
 	if (typeof(localStorage[newBu]) != "undefined") {
@@ -315,8 +314,6 @@ function subsetData(input_data) {
 
 // Data visualization window
 function scatterPlot(data) {
-	$("#overwrite_range span").fadeOut(500, function() { $(this).html("<font color='blue'>Axes locked! </font>").fadeIn(500); });
-	$("#overwrite_range").children().prop("disabled", true);
     // Initialize settings
     var margin = rawDataObject.margin,
         width = rawDataObject.width,
@@ -358,7 +355,7 @@ function scatterPlot(data) {
         },
         yScale = d3.scale.linear()
 		.domain([yMin, yMax])
-        .domain([yMin * 0.99, yMax * 1.01])
+        .domain([yMin * 0.9, yMax * 1.1])
         .range([height, 0])
         .nice(),
         yAxis = d3.svg.axis()
@@ -411,7 +408,7 @@ function scatterPlot(data) {
 		.style("pointer-events", "none")
         .append("text")
         .attr("class", "label")
-        .attr("x", margin.left / 2)
+        .attr("x", margin.left)
         .attr("y", -20)
         .style("text-anchor", "end")
         .style("font-weight", "bold")
@@ -582,7 +579,7 @@ function addLine(data) {
 				d3.select(this).style("opacity", 1);
                 $(".externalObject").remove();
                 var divText = "";
-                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(2) + "</b></div>";
+                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(4) + "</b></div>";
                 divText += "<input type='text' id=new_slope class=externalTextbox placeholder='enter new discount slope' onchange=updateLine()></input>";
                 d3.select("#grid_svg").append("foreignObject")
                     .attr("class", "externalObject")
@@ -1035,7 +1032,6 @@ function initPlot() {
     });
 
     // Initialization begins here
-    rawDataObject.currentData = subsetData(rawDataObject.buData);	
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
         alert("Please define axes!");
     } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
@@ -1069,8 +1065,8 @@ function initPlot() {
 			alert("Axes maximum range must be greater than minimum!");
 			return;
 		} else {
-			rawDataObject.minRangeX = (inputMinX == "" ? 10000 : parseFloat(inputMinX));
-			rawDataObject.maxRangeX = (inputMaxX == "" ? 1000000000 : parseFloat(inputMaxX));
+			rawDataObject.minRangeX = (inputMinX == "" ? 100 : parseFloat(inputMinX));
+			rawDataObject.maxRangeX = (inputMaxX == "" ? 10000000000 : parseFloat(inputMaxX));
 			settings.yMin = (inputMinY == "" ? settings.yMin : parseFloat(inputMinY));
 			settings.yMax = (inputMaxY == "" ? settings.yMax : parseFloat(inputMaxY));
 			
