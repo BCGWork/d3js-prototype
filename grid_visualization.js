@@ -142,7 +142,7 @@ function popControl() {
 		retrieveSession(newBu);
 		updateAllSvg();
 	}
-/*
+
 	$("#choose_y").val("Price per Unit");
     $(".checkbox")[1].checked = true;
     $(".checkbox")[6].checked = true;
@@ -159,7 +159,7 @@ function popControl() {
     $(".tooltip_display")[2].checked = true;
     $(".tooltip_display")[13].checked = true;
     $(".tooltip_display")[14].checked = true;
-*/
+
 }
 
 // Define x-axis variable

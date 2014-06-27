@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Pricing Grid Visualization</title>
+    <title>B2B Pricing Suite</title>
 	<link rel="icon" type="image/x-icon" href="magic_wand.ico">
     <link rel="stylesheet" type="text/css" href="styles.css">
 	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css">
@@ -52,15 +52,15 @@
 <body>
 	<div class="ui-widget-header ui-corner-all">
 		<div align="center">
-			<img src="magic_wand.ico" width=50 height=50/>
-			<span class="title">BCG Grid Wizard<sup>&copy;</sup></font></span>
-			<span class="subtitle"><i>A Boston Consulting Group product</i></span>
+			<a href="mailto:cui.bo@bcg.com?Subject=BCG B2B Pricing Suite Bug" style="text-decoration:none">
+				<img src="magic_wand.ico" width=50 height=50/>
+				<span class="title">B2B Pricing Suite</font></span>
+				<span class="subtitle"><i>by The Boston Consulting Group</i></span>
+			</a>
 		</div>
-		<span><a href="mailto:cui.bo@bcg.com?Subject=Pricing Grid Visualization Bug" target="_top" class="buttons">Contact Author</a></span>
-		<button id="change_log" class="buttons" onclick="changeLog()">Version Log</button>
+		<div style="text-align:right" onclick="changeLog()">v0.59a</div>
     </div>
     <div id="user_inputs" class="ui-widget-header ui-corner-all">
-        <h3>&nbsp;Data Input</h3>
 		<div id="file_inputs">
 			<input id="files" class="file" type="file" name="files[]" />
 			<div id="fake_file_input">
@@ -121,8 +121,15 @@
 			</div>
 		</div>
 		<div id="playbook_viz" class="visualization_div">
-            <select id="catDropDown" onchange="pbFilterCustomer()"></select>
-			<button id="pb_click_all" class="buttons" onclick="pbClickAll()">Click All</button>
+			<div id="pb_customize_field">
+				<select id="catDropDown" onchange="pbFilterCustomer()"></select>
+				<button id="pb_click_all" class="buttons" onclick="pbClickAll()">Click All</button>
+			</div>
+			<br/>
+			<div id="move_pb_axis">
+				<span>Move y-axis to: </span>
+				<input type="text" id="pb_new_y_axis" placeholder="enter y-axis %" value="50">
+			</div>
 		</div>
 		<div id="chessboard"></div>
 		<div id="management_report"></div>

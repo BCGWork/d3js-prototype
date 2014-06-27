@@ -48,6 +48,7 @@ function addAskPrice(d) {
 	rawDataObject.newPointCategory = d;
 	
 	var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
+//		divText = "";
 		divText = "<b>Add Point for category:</b><br/>";
 	divText += d + "<br/>";
 	divText += "<select id='add_point_selector' onchange='adjustNewPointType()'><option value='askPrice'>Customer Ask Price</option>";

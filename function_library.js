@@ -74,7 +74,7 @@ function detectUnique(value, index, self) {
 function printGrid() {
     var width = $("svg").attr("width"), // get svg width
         height = $("svg").attr("height"), // get svg height
-        gridContent = $("svg").html(), // get svg content
+        gridContent = $("#data_visualization").html(), // get svg content
         printWindow = window.open(); // open new window
     printWindow.document.write("<html><title>Grid Visualization</title><head>"); // open tags
     printWindow.document.write("<link rel='icon' type='image/x-icon' href='magic_wand.ico'>"); // import icon
@@ -85,9 +85,7 @@ function printGrid() {
     printWindow.document.write("</head><body>");
     printWindow.document.write("<button class='buttons' onclick='window.print()'>Print</button>"); // create print button
     printWindow.document.write("<button class='buttons' onclick='window.close()'>Close</button><hr/>"); // create close button
-    printWindow.document.write("<svg width=" + width + " height=" + height + ">"); // initialize svg according to existing width and height
     printWindow.document.write(gridContent); // reproduce svg content
-    printWindow.document.write("</svg>");
     printWindow.document.write("<script type='text/javascript' src='jui_style.js'></script>"); // Trigger JQuery UI styling
     printWindow.document.write("</body></html>"); // end page
 }
@@ -200,6 +198,19 @@ function updateAllSvg() {
 function changeLog() {
     var changeLogText = "<h3>Version Log</h3>";
 
+	var v0_60Change = "<h4><u>v0.6</u></h4><ol>";
+	v0_60Change += "<li>Added color for all quadrants in playbook.</li>";
+	v0_60Change += "<li>Enabled manual overwrite of y-axis position in playbook.</li>";
+	v0_60Change += "<li>All points in playbook are clickable and enabled &quot;Click All&quot; button.</li>";
+	v0_60Change += "<li>Minor opacity changes when interacting with points.</li>";
+	v0_60Change += "<li>Print window will show more information from grid.</li>";
+	v0_60Change += "<li>Remade headings.</li>";
+	v0_60Change += "<li></li>";
+	v0_60Change += "<li></li>";
+	v0_60Change += "<li></li>";
+	v0_60Change += "<li></li>";
+	v0_60Change += "</ol>";
+	
     var v0_50Change = "<h4><u>v0.5</u></h4><ol>";
 	v0_50Change += "<li>Applied new theme to entire tool and reformatted most layout.</li>";
 	v0_50Change += "<li>Added animation for some sections when entering and leaving.</li>";
@@ -209,7 +220,8 @@ function changeLog() {
     v0_50Change += "<li>Added drop down menu to adjust circle size for playbook.</li>";
     v0_50Change += "<li>Removed confirmation window, so that sessions will be automatically resumed when switching among business units.</li>";
     v0_50Change += "<li>Fixed a bug causing svg to move outside visualization panel when resizing window.</li>";
-	v0_50Change += "<li>Some other minor bug fixes and code clean up.</li>"
+	v0_50Change += "<li>Extended expiration date to 2014-07-11.</li>";
+	v0_50Change += "<li>Some other minor bug fixes and code clean up.</li>"	
     v0_50Change += "</ol>";
 
     var v0_40Change = "<h4><u>v0.4</u></h4><ol>";
@@ -252,6 +264,7 @@ function changeLog() {
     v0_20Change += "<li>Some other minor bug fixes.</li>";
     v0_20Change += "</ol>";
 
+	changeLogText += v0_60Change;
     changeLogText += v0_50Change;
     changeLogText += v0_40Change;
     changeLogText += v0_30Change;
