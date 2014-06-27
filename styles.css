@@ -1,54 +1,120 @@
+/* document body */
 body {
-font:12px sans-serif;
+	font:12px sans-serif;
 }
 
+/* input button */
+input.file {
+	position:relative;
+	text-align:right;
+	-moz-opacity:0;
+	filter:alpha(opacity:0);
+	opacity:0;
+	z-index:2;
+}
+#file_inputs {
+	position:relative;
+}
+#fake_file_input {
+	position:absolute;
+	top:0px;
+	left:0px;
+	z-index:1;
+}
+/* title and subtitle */
+.title {
+	margin-left:20px;
+	vertical-align:12px;
+	font-family:arial;
+	text-shadow:3px 3px 10px #847e71;
+	font-size:2.9em;
+}
+.subtitle {
+	margin-left:10px;
+	font-style:italic;
+	text-shadow:3px 3px 10px #847e71;
+}
+
+
+/* check box */
+label {
+	display: inline-block;
+	cursor: pointer;
+	position: relative;
+	padding-left: 25px;
+	margin-right: 15px;
+	font-size: 13px;
+}
+label:before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    position: absolute;
+    left: 0;
+    bottombottom: 1px;
+    background-color: #fafaf4;
+    box-shadow: inset 0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 1px 0px 0px rgba(255, 255, 255, 0.8);
+}
+input[type="checkbox"] {
+	display:none;
+}
+input[type="checkbox"] label:before {
+	border-radius:3px;
+}
+input[type="checkbox"]:checked + label:before {
+	content:"\2713";
+	text-shadow:1px 1px 1px rgba(0, 0, 0, 0.2);
+	font-weight:bold;
+	font-size:20px;
+	color:#327E04;
+	text-align:center;
+	line-height:15px
+}
+
+/* axes */
 .axis path,
 .axis line {
-fill:none;
-rendering:crispEdges;
-stroke:#000;
-width:2.5px;
-zindex:6;
-pointer-events:none;
+	fill:none;
+	rendering:crispEdges;
+	stroke:#000;
+	width:2.5px;
+	zindex:6;
+	pointer-events:none;
 }
 
+/* mouseover tooltip*/
 .tooltip {
-background:#ddd;
-border:2px solid #a1a1a1;
-border-radius:8px;
-events:none;
-font:sans-serif;
-font-weight:700;
-opacity:0;
-position:absolute;
-zindex:5;
-pointer-events:none;
-padding:5px;
+	background:#d4ccb0;
+	border:4px solid #327E04;
+	border-radius:8px;
+	events:none;
+	font-weight:700;
+	opacity:0;
+	position:absolute;
+	zindex:5;
+	pointer-events:none;
+	padding:5px;
 }
 
+/* click tooltip */
 .click_tooltip {
-background:#636363;
-border:2px solid #000;
-border-radius:8px;
-color:#FFF;
-events:none;
-font:sans-serif;
-font-weight:700;
-opacity:0;
-position:absolute;
-zindex:5;
-pointer-events:none;
-padding:5px;
+	background:#459e00;
+	border:4px solid black;
+	border-radius:8px;
+	events:none;
+	color:white;
+	font-weight:700;
+	opacity:0;
+	position:absolute;
+	zindex:5;
+	pointer-events:none;
+	padding:5px;
 }
 
-.textbox {
-border:2px solid #000;
-border-radius:8px;
-font:sans-serif;
-font-weight:700;
-opacity:0;
-pointer-events:none;
-position:absolute;
-zindex:10;
-padding:5px;
-}
+
+
+
+
+

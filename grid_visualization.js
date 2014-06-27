@@ -39,7 +39,7 @@ function isAPIAvailable() {
 function handleFileSelect(evt) {
     var files = evt.target.files;
     var file = files[0];
-    var output = "<font color='blue'>Data Loaded!</font>";
+    var output = "<font color='#cd5c0a'>Data Loaded!</font>";
 /*
     output += " - FileName: " + escape(file.name) + "<br/>";
     output += " - FileType: " + (file.type || "n/a") + "<br/>";
@@ -57,19 +57,21 @@ function handleFileSelect(evt) {
 
 // Read and parse data from csv
 function readData(file) {
-    var reader = new FileReader();
+    var reader = new FileReader(),
+		hideEffect = "fold";
     reader.readAsText(file);
     reader.onload = function (event) {
+		delete rawDataObject.dataObject;
         var csv = event.target.result;
         rawDataObject.dataObject = $.csv.toObjects(csv);
 		defineBu(rawDataObject.buName);
 		localStorage.clear();
 		
-		$("#control_panel").hide();
-		$("#visualization_tabs").hide();
+		$("#control_tabs").hide(hideEffect, 1500);
+		$("#visualization_tabs").hide(hideEffect, 1500);
     };
     reader.onerror = function () {
-        alert("Unable to read " + file.fileName);
+        $.alert("Unable to read " + file.fileName);
     };
 }
 
@@ -85,16 +87,19 @@ function defineBu(name) {
 			$("#choose_bu").append("<option value='" + buList[i] + "'>Business Unit: " + buList[i] + "</option>");
 		}
 	}
-    $("#choose_bu").show();
+	$("#choose_bu").show("fade");
 }
 
 // Populate filters and axes selector
 function popControl() {
-	var data = rawDataObject.dataObject.slice(),
-		currentBu = rawDataObject.currentBu,
-		newBu = $("#choose_bu").val();
+	var prevBu = rawDataObject.prevBu,
+		xName = rawDataObject.xList[0],
+		buName = rawDataObject.buName,
+		data = rawDataObject.dataObject.slice(),
+		newBu = $("#choose_bu").val(),
+		showEffect = "drop";
 		
-	saveSession(currentBu);
+	saveSession(prevBu);
     d3.select("#grid_svg").remove();
 	d3.select("#div_click_tooltip").remove();
 	$("#input_xmin").val("");
@@ -103,7 +108,6 @@ function popControl() {
 	$("#input_ymax").val("");
 	
 	if (newBu != "default Business Unit") {
-		var buName = rawDataObject.buName;
 		for (var i = data.length - 1; i >= 0; i--) {
 			if (data[i][buName] != $("#choose_bu").val()) {
 				data.splice(i, 1);
@@ -118,39 +122,43 @@ function popControl() {
 	defineY(Object.keys(data[0]));
 	defineTooltip(Object.keys(data[0]));
 	createCheckBox(data);
-	$("#control_panel").show();
-	$("#visualization_tabs").show();
+    $("#choose_x").val(xName);
+	$("#control_tabs").tabs();
 	$("#visualization_tabs").tabs({ selected: 1 });
-	$("#overwrite_range span").fadeOut(0, function() { $(this).text("Overwrite axes range: ").fadeIn(500); });
+	$("#control_tabs").show(showEffect);
+	$("#visualization_tabs").show(showEffect);
+	
 	$("#input_xmin").attr("placeholder", "enter minimum x");
 	$("#input_xmax").attr("placeholder", "enter maximum x");
 	$("#input_ymin").attr("placeholder", "enter minimum y");
 	$("#input_ymax").attr("placeholder", "enter maximum y");
-	$("#overwrite_range").show();
+	
+	$("#input_xmin").mask("#,##0", {reverse:true, maxlength:false});
+	$("#input_xmax").mask("#,##0", {reverse:true, maxlength:false});
+	$("#input_ymin").mask("#0.00", {reverse:true, maxlength:false});
+	$("#input_ymax").mask("#0.00", {reverse:true, maxlength:false});
 
 	if (typeof(localStorage[newBu]) != "undefined") {
-		var resumeSession = confirm("Resume previous session for " + newBu + "?");
-		if (resumeSession == true) {
-			retrieveSession(newBu);
-			initPlot();
-		} else {
-			initPlot();
-		}
+		retrieveSession(newBu);
+		updateAllSvg();
 	}
-
-	var xName = rawDataObject.xList[0];
-    $("#choose_x").val(xName);
-
 /*
-	$("#choose_y").val("Absolute Px");
-    $(".checkbox")[0].checked = true;
+	$("#choose_y").val("Price per Unit");
     $(".checkbox")[1].checked = true;
-    $(".checkbox")[2].checked = true;
-	$(".checkbox")[5].checked = true;
     $(".checkbox")[6].checked = true;
-    $(".tooltip_display")[6].checked = true;
-    $(".tooltip_display")[7].checked = true;
-    $(".tooltip_display")[9].checked = true;
+    $(".checkbox")[7].checked = true;
+	$(".checkbox")[8].checked = true;
+    $(".checkbox")[9].checked = true;
+	$(".checkbox")[10].checked = true;
+	$(".checkbox")[11].checked = true;
+	$(".checkbox")[12].checked = true;
+	$(".checkbox")[13].checked = true;
+	$(".checkbox")[14].checked = true;
+	$(".checkbox")[19].checked = true;
+	$(".checkbox")[20].checked = true;
+    $(".tooltip_display")[2].checked = true;
+    $(".tooltip_display")[13].checked = true;
+    $(".tooltip_display")[14].checked = true;
 */
 }
 
@@ -160,7 +168,7 @@ function defineX(dataHeader) {
     $("#choose_x").append("<option value=''>--- choose x ---</option>");
 	var xList = rawDataObject.xList;
 	for (var i = 0; i < xList.length; i++) {
-		$("#choose_x").append("<option value='" + xList[i] + "'>" + xList[i] + "</option>");
+		$("#choose_x").append("<option value='" + xList[i] + "'>x: " + xList[i] + "</option>");
 	}
     $("#choose_x").show();
 }
@@ -171,35 +179,29 @@ function defineY(dataHeader) {
     $("#choose_y").append("<option value=''>--- choose y ---</option>");
 	var yList = rawDataObject.yList;
 	for (var i = 0; i < yList.length; i++) {
-		$("#choose_y").append("<option value='" + yList[i] + "'>" + yList[i] + "</option>");
+		$("#choose_y").append("<option value='" + yList[i] + "'>y: " + yList[i] + "</option>");
 	}
     $("#choose_y").show();
 }
 
 // Define tooltip display variable
 function defineTooltip(dataHeader) {
-    $(".tooltip_label").remove();
+    $("#tooltip_checkbox").empty();
     $("#tooltip_title").show();
-	var tooltipHideList = ["Category", "AnchorPerGB"];
+	var tooltipHideList = ["Category", "AnchorPerGB", "pbCategory"];
 	tooltipHideList.push(rawDataObject.anchorName.x);
 	tooltipHideList.push(rawDataObject.anchorName.y);
 	tooltipHideList.push(rawDataObject.dSlopeName);
 	tooltipHideList.push(rawDataObject.buName);
 	
+	var tooltipSelectAllCb = "<input type='checkbox' id='tooltip_selectall' onchange='tooltipSelectAll(this)'/><label class='tooltip_label' for='tooltip_selectall'><font color='#5C5858'><em>Select All</em></font></label>"
+	$("#tooltip_checkbox").append("<br/><span id='tooltip_title'><b>Tooltip Settings</b></span><br/>");
+	$("#tooltip_checkbox").append(tooltipSelectAllCb).append("<br/>");
     for (var i = 0; i < dataHeader.length; i++) {
         if ($.inArray(dataHeader[i], tooltipHideList) == -1) {
-            var tooltipLabel = $("<label class=tooltip_label />").html(dataHeader[i])
-                .prepend($("<input/>")
-                    .attr({
-                        type: "checkbox",
-                        id: "tooltip_" + dataHeader[i],
-                        class: "tooltip_display",
-                        value: dataHeader[i]
-                    }));
-            $("#tooltip_checkbox").append(tooltipLabel).append("<br class=tooltip_label />");
+			$("#tooltip_checkbox").append("<input type='checkbox' id='tooltip_checkbox_" + i + "' class='tooltip_display' value='" + dataHeader[i] + "'/><label class='tooltip_label' for='tooltip_checkbox_" + i + "'>" + dataHeader[i] + "</label><br class='tooltip_label' />");
         }
     }
-    $("#selectall_label").show();
 }
 
 // Enable select all feature for tooltips
@@ -224,7 +226,7 @@ function defineFilters(dataHeader) {
 
 // Enable select all feature for filters
 function filterSelectAll(filterName, source) {
-	var filterCheckbox = $("[id='" + filterName + "']");
+	var filterCheckbox = $("[name='" + filterName + "']");
     for (var i = 0; i < filterCheckbox.length; i++) {
         filterCheckbox[i].checked = source.checked;
     }
@@ -234,7 +236,8 @@ function filterSelectAll(filterName, source) {
 function createCheckBox(data) {
     $("#filter_checkbox").empty();
     var dataHeader = Object.keys(data[0]),
-        filterName = defineFilters(dataHeader);
+        filterName = defineFilters(dataHeader),
+		j = 0;
 
     for (var i = 0; i < filterName.length; i++) {
         $("#filter_checkbox").append("<br/>");
@@ -251,18 +254,11 @@ function createCheckBox(data) {
         }
 
         // Create check boxes according to unique filter data
-		var selectAllCb = "<label><input type='checkbox' id=" + filterId + "_selectall onchange='filterSelectAll(&apos;" + filterName[i] + "&apos;, this)'><font color='#5C5858'><em>Select / Deselect all</em></font></label>"
+		var selectAllCb = "<input type='checkbox' id=" + filterId + "_selectall onchange='filterSelectAll(&apos;" + filterName[i] + "&apos;, this)'/><label for=" + filterId + "_selectall><font color='#5C5858'><em>Select All</em></font></label>"
 		$("#filter_checkbox").append(selectAllCb).append("<br/>");
         for (var k = 0; k < uniqueFilterData.length; k++) {
-            var checkBoxLabel = $("<label/>").html(uniqueFilterData[k])
-                .prepend($("<input/>")
-                    .attr({
-                        type: "checkbox",
-                        id: filterName[i],
-                        class: "checkbox",
-                        value: uniqueFilterData[k]
-                    }));
-            $("#filter_checkbox").append(checkBoxLabel).append("<br/>");
+			$("#filter_checkbox").append("<input type='checkbox' id='checkbox_" + j + "' name='" + filterName[i] + "' class='checkbox' value='" + uniqueFilterData[k] + "'/><label class='checkbox_label' for='checkbox_" + j + "'>" + uniqueFilterData[k] + "</label><br/>");
+		j += 1;
         }
     }
 }
@@ -274,11 +270,11 @@ function subsetData(input_data) {
         uncheckedFilterValue = [];
     for (var i = 0; i < $(".checkbox").length; i++) {
         if ($(".checkbox")[i].checked == false) {
-            if (!($(".checkbox")[i].id in uncheckedFilterObject)) {
-                uncheckedFilterObject[$(".checkbox")[i].id] = [];
-                uncheckedFilterObject[$(".checkbox")[i].id].push($(".checkbox")[i].value);
+            if (!($(".checkbox")[i].name in uncheckedFilterObject)) {
+                uncheckedFilterObject[$(".checkbox")[i].name] = [];
+                uncheckedFilterObject[$(".checkbox")[i].name].push($(".checkbox")[i].value);
             } else {
-                uncheckedFilterObject[$(".checkbox")[i].id].push($(".checkbox")[i].value);
+                uncheckedFilterObject[$(".checkbox")[i].name].push($(".checkbox")[i].value);
             }
         }
     }
@@ -504,8 +500,8 @@ function scatterPlot(data) {
             return d;
         });
 	legend.on("click", addAskPrice);
-	legend.on("mouseover", function () {d3.select(this).style("stroke-width", 1.5).style("stroke", "black").style("kerning", 1);})
-	legend.on("mouseout", function () {d3.select(this).style("stroke-width", 0).style("kerning", 0);});
+	legend.on("mouseover", function () {d3.select(this).style("stroke-width", 1.5).style("stroke", "black");})
+	legend.on("mouseout", function () {d3.select(this).style("stroke-width", 0);});
 }
 
 // Add grid lines
@@ -513,6 +509,7 @@ function addLine(data) {
     // Initialize settings
     var anchorName = rawDataObject.anchorName,
 		capacityName = rawDataObject.capacityName,
+		customerName = rawDataObject.customerName,
         dSlopeName = rawDataObject.dSlopeName,
         minPriceX = rawDataObject.minPriceX,
         xScale = rawDataObject.xScale,
@@ -533,6 +530,7 @@ function addLine(data) {
                 "category": data[i][zName],
 				"capacity": parseFloat(data[i][capacityName]),
                 "dSlope": parseFloat(data[i][dSlopeName]),
+				"customer": data[i][customerName],
                 "anchorX": parseFloat(data[i][anchorName.x]),
                 "anchorY": 0,
                 "anchorYpx": parseFloat(data[i][anchorName.y]),
@@ -559,6 +557,7 @@ function addLine(data) {
         lineVals[i].intercept = coord.intercept;
         coord["fillName"] = "group_" + i;
         coord["category"] = lineVals[i]["category"];
+		coord["customer"] = lineVals[i]["customer"];
         pointData.push(coord);
 
         // Append grid line
@@ -577,18 +576,31 @@ function addLine(data) {
 				d3.selectAll(".grid_line").style("opacity", 0.1);
 				d3.selectAll(".hline").style("opacity", 0.1);
 				d3.select(this).style("opacity", 1);
-                $(".externalObject").remove();
-                var divText = "";
-                divText += "<div id=new_slope_text class=externalTextbox><b>Current Discount Slope: " + (coord.slope / coord.y2).toFixed(4) + "</b></div>";
-                divText += "<input type='text' id=new_slope class=externalTextbox placeholder='enter new discount slope' onchange=updateLine()></input>";
-                d3.select("#grid_svg").append("foreignObject")
-                    .attr("class", "externalObject")
-                    .attr("x", (d3.mouse(this)[0] - 20) + "px")
-                    .attr("y", (d3.mouse(this)[1] - 10) + "px")
-                    .attr("width", 200)
-                    .attr("height", 100)
-                    .append("xhtml:div")
-                    .html(divText);
+				
+				var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
+					divText = "<b>Enter New Discount Slope:</b>";
+				divText += "<input type='text' id=new_slope placeholder='current value: " + (coord.slope / coord.y2).toFixed(4) + "'/>";
+				$(".externalObject").append(divText);
+				$(".externalObject").dialog({
+					autoOpen: true,
+					modal: true,
+					show: {
+						effect: "fold"
+					},
+					buttons: {
+						"Submit": function() {
+							updateLine();
+							d3.selectAll(".grid_line").style("opacity", 0.62);
+							d3.selectAll(".hline").style("opacity", 0.62);
+							$(this).remove();
+						},
+						"Cancel": function() {
+							d3.selectAll(".grid_line").style("opacity", 0.62);
+							d3.selectAll(".hline").style("opacity", 0.62);
+							$(this).remove();
+						}
+					}
+				});
             });
     }
     rawDataObject.pointData = pointData;
@@ -642,21 +654,31 @@ function addAnchorPoints() {
             anchorTooltip.transition().style("opacity", 0).style("display", "none");
         })
         .on("click", function (d) {
-            d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
-            $(".externalObject").remove();
-            var divText = "";
-            divText += "<div id=new_anchor_text class=externalTextbox><b>Current Coordinates:<br/>";
-            divText += "(" + format(Math.pow(10, d["x2"])) + ", " + d["y2"].toFixed(2) + ")</b></div>";
-            divText += "<input type='text' id=new_anchor class=externalTextbox placeholder='enter new coordinates' onchange=updateAnchor()></input>";
-            rawDataObject.selectedAnchorId = d3.select(this).attr("id");
-            d3.select("#grid_svg").append("foreignObject")
-                .attr("class", "externalObject")
-                .attr("x", (d3.mouse(this)[0] - 20) + "px")
-                .attr("y", (d3.mouse(this)[1] - 15) + "px")
-                .attr("width", 200)
-                .attr("height", 100)
-                .append("xhtml:div")
-                .html(divText);
+			rawDataObject.selectedAnchorId = d3.select(this).attr("id");
+			var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
+				divText = "<b>Enter New Anchor Coordinates:</b>";
+			divText += "<input type='text' id=new_anchor_x placeholder='current x value: " + format(Math.pow(10, d["x2"])) + "'/>";
+			divText += "<input type='text' id=new_anchor_y placeholder='current y value: " + d["y2"].toFixed(2) + "'/>";
+			$(".externalObject").append(divText);
+			$(".externalObject").dialog({
+				autoOpen: true,
+				modal: true,
+				show: {
+					effect: "fold"
+				},
+				buttons: {
+					"Submit": function() {
+						updateAnchor();
+						$(this).remove();
+					},
+					"Cancel": function() {
+						$(this).remove();
+					}
+				}
+			});
+			
+			$("#new_anchor_x").mask("#,##0", {reverse:true, maxlength:false});
+			$("#new_anchor_y").mask("#0.00", {reverse:true, maxlength:false});
         });
 }
 
@@ -664,6 +686,7 @@ function addAnchorPoints() {
 function addMinPricePoint() {
     // Initialize settings
     var pointData = rawDataObject.pointData,
+		minPriceX = rawDataObject.minPriceX,
         xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,
 		uniqueCat = rawDataObject.uniqueCat,
@@ -707,21 +730,29 @@ function addMinPricePoint() {
         .on("mouseout", function (d) {
             minPriceTooltip.transition().style("opacity", 0).style("display", "none");
         })
-        .on("click", function (d) {
-            d3.select(this).transition().style("stroke-opacity", 1).style("opacity", 1);
-            $(".externalObject").remove();
-            var divText = "";
-            divText += "<div id=new_minx_text class=externalTextbox><b>Current Minimum Price:<br/>";
-            divText += format(rawDataObject.minPriceX) + "</b></div>";
-            divText += "<input type='text' id=new_minx class=externalTextbox placeholder='enter new minimum price' onchange=updateMinX()></input>";
-            d3.select("#grid_svg").append("foreignObject")
-                .attr("class", "externalObject")
-                .attr("x", (d3.mouse(this)[0] - 20) + "px")
-                .attr("y", (d3.mouse(this)[1] - 15) + "px")
-                .attr("width", 200)
-                .attr("height", 100)
-                .append("xhtml:div")
-                .html(divText);
+        .on("click", function () {
+			var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
+				divText = "<b>Enter New Minimum Price:</b>";
+			divText += "<input type='text' id=new_minx placeholder='current value: " + format(minPriceX) + "'/>";
+			$(".externalObject").append(divText);
+			$(".externalObject").dialog({
+				autoOpen: true,
+				modal: true,
+				show: {
+					effect: "fold"
+				},
+				buttons: {
+					"Submit": function() {
+						updateMinX();
+						$(this).remove();
+					},
+					"Cancel": function() {
+						$(this).remove();
+					}
+				}
+			});
+			
+			$("#new_minx").mask("#,##0", {reverse:true, maxlength:false});
         });
 
     // Append horizontal lines
@@ -746,6 +777,7 @@ function updateLine() {
     // Initialize settings
     var data = rawDataObject.currentData,
         pointData = rawDataObject.pointData,
+		newPointList = rawDataObject.newPointList,
         updateField = rawDataObject.updateField,
         dSlopeName = rawDataObject.dSlopeName,
         capacity = rawDataObject.capacityName,
@@ -760,7 +792,7 @@ function updateLine() {
         newSlope = 0,
         tempData = data.slice();
     // Retrieve user input for new discount slope
-	if (typeof($("#new_slope").val()) == "undefined") {
+	if (typeof($("#new_slope").val()) == "undefined" || isNaN(parseFloat($("#new_slope").val()))) {
         newSlope = data[0][dSlopeName];
     } else {
         newSlope = parseFloat($("#new_slope").val());
@@ -795,6 +827,20 @@ function updateLine() {
     $("#new_slope_text").hide();
 	d3.selectAll(".grid_line").style("opacity", 0.62);
 	d3.selectAll(".hline").style("opacity", 0.62);
+	
+	// Add new points
+	d3.selectAll(".newpoints").remove();
+	for (var key in newPointList) {
+		var argList = key.split("| "),
+			pointType = argList[0],
+			newPointCategory = argList[1],
+			competitorName = argList[2],
+			newX = newPointList[key]["x"],
+			newY = newPointList[key]["y"];
+		if ($.inArray(newPointCategory, extractValue(data, "Category")) > -1) {
+			addNewPoint(pointType, competitorName, newX, newY, newPointCategory);
+		}
+	}
 
     // Update data
     for (var i = 0; i < data.length; i++) {
@@ -817,8 +863,6 @@ function updateLine() {
 
 // Anchor point interactivity
 function updateAnchor() {
-    // Hide anchor tooltip
-    d3.selectAll("#anchor_tooltip").style("opacity", 0);
     // Initialize settings
     var selectedAnchorId = rawDataObject.selectedAnchorId,
         data = rawDataObject.currentData,
@@ -833,13 +877,12 @@ function updateAnchor() {
 		anchorName = rawDataObject.anchorName;
 
     // Retrieve user input for new anchor coordinates	
-    var newCoord = $("#new_anchor").val().split(","),
-        newAnchorX = parseFloat(newCoord[0]),
-        newAnchorY = parseFloat(newCoord[1]);
+    var newAnchorX = parseFloat($("#new_anchor_x").val().replace(/,/g, "")),
+        newAnchorY = parseFloat($("#new_anchor_y").val().replace(/,/g, ""));
 	if (isNaN(newAnchorX) || isNaN(newAnchorY)) {
-		alert("Invalid input!");
+		return;
 	} else if (newAnchorX <= minRangeX || newAnchorX > maxRangeX || newAnchorY < minRangeY || newAnchorY > maxRangeY) {
-		alert("Input out of bound!");
+		$.alert("Input out of bound! e.g. (" + minPriceX * 100 + ", " + ((minRangeY + maxRangeY) / 2).toFixed(2) + ")");
 	} else {
 		// Update coordinates of anchor points
 		for (var i = 0; i < pointData.length; i++) {
@@ -876,24 +919,21 @@ function updateAnchor() {
 // Minimum price point interactivity
 function updateMinX() {
 	var minRangeX = rawDataObject.minRangeX,
-		maxRangeX = rawDataObject.maxRangeX;
+		maxRangeX = rawDataObject.maxRangeX,
+		minPriceX = rawDataObject.minPriceX;
 
-    // Hide minimum price point tooltip
-    d3.selectAll("#min_price_tooltip").style("opacity", 0);
     // Retrieve user input for new minimum price point
-    var newMinX = parseInt($("#new_minx").val());
-	if (isNaN(newMinX)) {
-		alert("Invalid input!");
+	var newMinX = $("#new_minx").val().replace(/,/g, "");
+	
+	if (isNaN(parseInt(newMinX))) {
+		return;
 	} else if ((parseInt(newMinX) < minRangeX) || (parseInt(newMinX) >= maxRangeX)) {
-		alert("Input out of bound!");
+		$.alert("Input out of bound! e.g. (" + minPriceX * 100 + ")");
 	} else {
-		rawDataObject.minPriceX = newMinX;
+		rawDataObject.minPriceX = parseInt(newMinX);
 	}
     // Update line
     updateLine();
-    // Hide minimum price update window
-    $("#new_minx").hide();
-    $("#new_minx_text").hide();
 }
 
 // Functions to update tooltips
@@ -1002,43 +1042,31 @@ function addCrossHair(xCoord, yCoord) {
 
 // Function to initialize visualization
 function initPlot() {
-	var dSlopeName = rawDataObject.dSlopeName,
-		anchorNameX = rawDataObject.anchorName.x,
-		anchorNameY = rawDataObject.anchorName.y,
-		capacityName = rawDataObject.capacityName,
-		format = d3.format(",f"),
-		inputMinX = $("#input_xmin").val(),
-		inputMaxX = $("#input_xmax").val(),
-		inputMinY = $("#input_ymin").val(),
-		inputMaxY = $("#input_ymax").val();
-		
-	rawDataObject.currentBu = $("#choose_bu").val();
+	rawDataObject.prevBu = $("#choose_bu").val();
 	
     // Canvas initialization
     d3.selectAll("#grid_svg").remove(); // remove visualization panel
     d3.selectAll(".tooltip").remove(); // remove mouseover tooltip, anchor point & minimum price point tooltip
     d3.selectAll("#div_click_tooltip").remove(); // remove click tooltip
 
-    // Click outside foreignObject will hide it
-    $(document).mouseup(function (e) {
-        var container = $(".externalTextbox");
-        if (!container.is(e.target) && container.has(e.target).length === 0) { // if the target of the click isn't the container nor a descendant of the container
-            container.hide(); // hide container
-            d3.selectAll(".anchor_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all anchor points
-            d3.selectAll(".min_price_point").transition().style("stroke-opacity", 0.38).style("opacity", 0.38); // reset effects of all minimum price points
-			d3.selectAll(".grid_line").style("opacity", 0.62); // reset effects of all grid lines
-			d3.selectAll(".hline").style("opacity", 0.62); // reset effects of all horizontal lines
-        }
-    });
-
     // Initialization begins here
     if (($("#choose_x").val() == "") || ($("#choose_y").val() == "")) {
-        alert("Please define axes!");
-    } else if ((typeof (rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
+        $.alert("Please define axes!");
+    } else if ((typeof(rawDataObject.currentData) == "undefined") || (rawDataObject.currentData.length == 0)) {
 		$("#customize_field").hide();
         $("#error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
         setTimeout(function () { $("#error_display").fadeOut("slow"); }, 500);
     } else {
+		var dSlopeName = rawDataObject.dSlopeName,
+			anchorNameX = rawDataObject.anchorName.x,
+			anchorNameY = rawDataObject.anchorName.y,
+			capacityName = rawDataObject.capacityName,
+			format = d3.format(",f"),
+			inputMinX = parseInt($("#input_xmin").val().replace(/,/g, "")),
+			inputMaxX = parseInt($("#input_xmax").val().replace(/,/g, "")),
+			inputMinY = parseFloat($("#input_ymin").val().replace(/,/g, "")),
+			inputMaxY = parseFloat($("#input_ymax").val().replace(/,/g, ""));
+
         // Link to data subset
         var data = rawDataObject.currentData;
         // General settings to be passed to plot functions
@@ -1058,17 +1086,14 @@ function initPlot() {
 		settings.xMax = d3.max(extractValue(data, settings.xName));
         settings.yMin = d3.min(extractValue(data, settings.yName));
         settings.yMax = d3.max(extractValue(data, settings.yName));
-		if (isNaN(inputMinX) || isNaN(inputMaxX) || isNaN(inputMinY) || isNaN(inputMaxY)) {
-			alert("Invalid input in axes range!");
-			return;
-		} else if (parseFloat(inputMinX) > parseFloat(inputMaxX) || parseFloat(inputMinY) > parseFloat(inputMaxY)) {
-			alert("Axes maximum range must be greater than minimum!");
+		if (parseFloat(inputMinX) > parseFloat(inputMaxX) || parseFloat(inputMinY) > parseFloat(inputMaxY)) {
+			$.alert("Axes maximum range must be greater than minimum!");
 			return;
 		} else {
-			rawDataObject.minRangeX = (inputMinX == "" ? 100 : parseFloat(inputMinX));
-			rawDataObject.maxRangeX = (inputMaxX == "" ? 10000000000 : parseFloat(inputMaxX));
-			settings.yMin = (inputMinY == "" ? settings.yMin : parseFloat(inputMinY));
-			settings.yMax = (inputMaxY == "" ? settings.yMax : parseFloat(inputMaxY));
+			rawDataObject.minRangeX = (isNaN(inputMinX) ? 100 : parseFloat(inputMinX));
+			rawDataObject.maxRangeX = (isNaN(inputMaxX) ? 10000000000 : parseFloat(inputMaxX));
+			settings.yMin = (isNaN(inputMinY) ? settings.yMin : parseFloat(inputMinY));
+			settings.yMax = (isNaN(inputMaxY) ? settings.yMax : parseFloat(inputMaxY));
 			
 		}
 		$("#input_xmin").attr("placeholder", format(rawDataObject.minRangeX));
