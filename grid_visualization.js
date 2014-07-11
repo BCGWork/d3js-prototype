@@ -14,13 +14,6 @@ function findLine(slope, x1, x2, y2, xMax) {
     return output;
 }
 
-// Check availability of File API
-$(document).ready(function () {
-    if (isAPIAvailable()) {
-        $("#files").bind("change", handleFileSelect);
-    }
-});
-
 function isAPIAvailable() {
     if (window.File && window.FileReader && window.FileList && window.Blob) {
         return true;
@@ -40,6 +33,7 @@ function handleFileSelect(evt) {
     var files = evt.target.files;
     var file = files[0];
     var output = "<font color='#cd5c0a'>Data Loaded!</font>";
+	$("#file_name").html("");
 /*
     output += " - FileName: " + escape(file.name) + "<br/>";
     output += " - FileType: " + (file.type || "n/a") + "<br/>";
@@ -47,7 +41,7 @@ function handleFileSelect(evt) {
     output += " - LastModified: " + (file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : "n/a") + "<br/>";
 */
     readData(file);
-
+	$("#file_name").html(file.name);
     $("#upload_status").html(output);
 	$("#upload_status").show();
 	setTimeout(function () { $("#upload_status").fadeOut("slow"); }, 800);
@@ -63,7 +57,14 @@ function readData(file) {
     reader.onload = function (event) {
 		delete rawDataObject.dataObject;
         var csv = event.target.result;
-        rawDataObject.dataObject = $.csv.toObjects(csv);
+		try {
+			rawDataObject.dataObject = $.csv.toObjects(csv);
+		}
+		catch(err) {
+			$.alert("Please load comma-delimited (.csv) data!");
+			throw("Invalid data format.");
+		}
+        
 		defineBu(rawDataObject.buName);
 		localStorage.clear();
 		
@@ -94,6 +95,7 @@ function defineBu(name) {
 function popControl() {
 	var prevBu = rawDataObject.prevBu,
 		xName = rawDataObject.xList[0],
+		yName = rawDataObject.yList[0],
 		buName = rawDataObject.buName,
 		data = rawDataObject.dataObject.slice(),
 		newBu = $("#choose_bu").val(),
@@ -123,6 +125,7 @@ function popControl() {
 	defineTooltip(Object.keys(data[0]));
 	createCheckBox(data);
     $("#choose_x").val(xName);
+	$("#choose_y").val(yName);
 	$("#control_tabs").tabs();
 	$("#visualization_tabs").tabs({ selected: 1 });
 	$("#control_tabs").show(showEffect);
@@ -142,16 +145,12 @@ function popControl() {
 		retrieveSession(newBu);
 		updateAllSvg();
 	}
-
-	$("#choose_y").val("Price per Unit");
+/*
     $(".checkbox")[1].checked = true;
     $(".checkbox")[6].checked = true;
     $(".checkbox")[7].checked = true;
 	$(".checkbox")[8].checked = true;
-    $(".checkbox")[9].checked = true;
-	$(".checkbox")[10].checked = true;
 	$(".checkbox")[11].checked = true;
-	$(".checkbox")[12].checked = true;
 	$(".checkbox")[13].checked = true;
 	$(".checkbox")[14].checked = true;
 	$(".checkbox")[19].checked = true;
@@ -159,7 +158,10 @@ function popControl() {
     $(".tooltip_display")[2].checked = true;
     $(".tooltip_display")[13].checked = true;
     $(".tooltip_display")[14].checked = true;
-
+	$(".selectall_checkbox").each(function(){$(this).button("refresh");});
+	$(".checkbox").each(function(){$(this).button("refresh");});
+	$(".tooltip_display").each(function(){$(this).button("refresh");});
+*/
 }
 
 // Define x-axis variable
@@ -194,14 +196,19 @@ function defineTooltip(dataHeader) {
 	tooltipHideList.push(rawDataObject.dSlopeName);
 	tooltipHideList.push(rawDataObject.buName);
 	
-	var tooltipSelectAllCb = "<input type='checkbox' id='tooltip_selectall' onchange='tooltipSelectAll(this)'/><label class='tooltip_label' for='tooltip_selectall'><font color='#5C5858'><em>Select All</em></font></label>"
-	$("#tooltip_checkbox").append("<br/><span id='tooltip_title'><b>Tooltip Settings</b></span><br/>");
+	var tooltipSelectAllCb = "<input type='checkbox' id='tooltip_selectall' onchange='tooltipSelectAll(this)'/><label class='tooltip_label' for='tooltip_selectall'>Select All</label>"
+	$("#tooltip_checkbox").append("<br/><span id='tooltip_title'><font size=2.62><b><u>Tooltip Settings</u></b></font></span><br/>");
 	$("#tooltip_checkbox").append(tooltipSelectAllCb).append("<br/>");
     for (var i = 0; i < dataHeader.length; i++) {
         if ($.inArray(dataHeader[i], tooltipHideList) == -1) {
-			$("#tooltip_checkbox").append("<input type='checkbox' id='tooltip_checkbox_" + i + "' class='tooltip_display' value='" + dataHeader[i] + "'/><label class='tooltip_label' for='tooltip_checkbox_" + i + "'>" + dataHeader[i] + "</label><br class='tooltip_label' />");
+			$("#tooltip_checkbox").append("<input type='checkbox' onchange='updateSelectAll(&apos;tooltip&apos;)' id='tooltip_checkbox_" + i + "' class='tooltip_display' name='tooltip' value='" + dataHeader[i] + "'/><label class='label_selectall' for='tooltip_checkbox_" + i + "'>" + dataHeader[i] + "</label><br class='tooltip_label' />");
         }
     }
+	
+	$("#tooltip_selectall").button();
+	$(".label_selectall").css("font-size", "11px");
+	$(".tooltip_display").each(function(){$(this).button();});
+	$(".tooltip_label").css("font-size", "11px");
 }
 
 // Enable select all feature for tooltips
@@ -210,6 +217,7 @@ function tooltipSelectAll(source) {
     for (var i = 0; i < tooltipCheckbox.length; i++) {
         tooltipCheckbox[i].checked = source.checked;
     }
+	tooltipCheckbox.button("refresh");
 }
 
 // Detect filters from data
@@ -226,10 +234,28 @@ function defineFilters(dataHeader) {
 
 // Enable select all feature for filters
 function filterSelectAll(filterName, source) {
-	var filterCheckbox = $("[name='" + filterName + "']");
+	var filterCheckbox = $(".checkbox[name='" + filterName + "']");
     for (var i = 0; i < filterCheckbox.length; i++) {
         filterCheckbox[i].checked = source.checked;
     }
+	filterCheckbox.button("refresh");
+}
+
+// Update select all checkbox for filters
+function updateSelectAll(filterName) {
+	var checkSum = 0;
+	if (filterName == "tooltip") {
+		var checkMax = $(".tooltip_display").length;
+		$(".tooltip_display").each(function(d){ checkSum += this.checked;});
+	} else {
+		var checkMax = $(".checkbox[name='" + filterName + "']").length;
+		$(".checkbox[name='" + filterName + "']").each(function(d){ checkSum += this.checked;});
+	}
+	if (checkSum == checkMax) {
+		$("#" + filterName.replace(/,|\.|-| /g, "") + "_selectall").prop("checked", true).button("refresh");
+	} else {
+		$("#" + filterName.replace(/,|\.|-| /g, "") + "_selectall").prop("checked", false).button("refresh");
+	}
 }
 
 // Add filters and create check boxes for each
@@ -241,7 +267,7 @@ function createCheckBox(data) {
 
     for (var i = 0; i < filterName.length; i++) {
         $("#filter_checkbox").append("<br/>");
-        $("#filter_checkbox").append("<div class=" + filterName[i].replace(/,|\.|-| /g, "") + "><b>" + filterName[i] + "</b></div>");
+        $("#filter_checkbox").append("<div class=" + filterName[i].replace(/,|\.|-| /g, "") + "><font size=2.62><b><u>" + filterName[i] + "</u></b></font></div>");
         // Extract unique data for each filter
 		var uniqueFilterData = extractValue(data, filterName[i]).filter(detectUnique),
 			filterId = filterName[i].replace(/,|\.|-| /g, "")
@@ -254,13 +280,18 @@ function createCheckBox(data) {
         }
 
         // Create check boxes according to unique filter data
-		var selectAllCb = "<input type='checkbox' id=" + filterId + "_selectall onchange='filterSelectAll(&apos;" + filterName[i] + "&apos;, this)'/><label for=" + filterId + "_selectall><font color='#5C5858'><em>Select All</em></font></label>"
+		var selectAllCb = "<input type='checkbox' id=" + filterId + "_selectall class='selectall_checkbox' onchange='filterSelectAll(&apos;" + filterName[i] + "&apos;, this)'/><label class='label_selectall' for=" + filterId + "_selectall>Select All</label>";
 		$("#filter_checkbox").append(selectAllCb).append("<br/>");
         for (var k = 0; k < uniqueFilterData.length; k++) {
-			$("#filter_checkbox").append("<input type='checkbox' id='checkbox_" + j + "' name='" + filterName[i] + "' class='checkbox' value='" + uniqueFilterData[k] + "'/><label class='checkbox_label' for='checkbox_" + j + "'>" + uniqueFilterData[k] + "</label><br/>");
+			$("#filter_checkbox").append("<input type='checkbox' onchange='updateSelectAll(&apos;" + filterName[i] + "&apos;)' id='checkbox_" + j + "' name='" + filterName[i] + "' class='checkbox' value='" + uniqueFilterData[k] + "'/><label class='checkbox_label' for='checkbox_" + j + "'>" + uniqueFilterData[k] + "</label><br/>");
 		j += 1;
         }
     }
+
+	$(".selectall_checkbox").each(function(){$(this).button();});
+	$(".checkbox").each(function(){$(this).button();});
+	$(".label_selectall").css("font-size", "11px");
+	$(".checkbox_label").css("font-size", "11px");
 }
 
 // Subset data for visualization
@@ -478,6 +509,7 @@ function scatterPlot(data) {
         .data(zColor.domain())
         .enter().append("g")
         .style("zIndex", 1)
+		.style("cursor", "pointer")
 		.attr("id", function (d) {
 			var idSuffix = d.replace(/'|;| /g, "");
 			return "legend_" + idSuffix;
@@ -573,6 +605,7 @@ function addLine(data) {
             .style("stroke-width", 6)
             .style("opacity", 0.62)
             .on("click", function (d) {
+				$(".externalObject").remove();
 				d3.selectAll(".grid_line").style("opacity", 0.1);
 				d3.selectAll(".hline").style("opacity", 0.1);
 				d3.select(this).style("opacity", 1);
@@ -583,6 +616,7 @@ function addLine(data) {
 				$(".externalObject").append(divText);
 				$(".externalObject").dialog({
 					autoOpen: true,
+					closeOnEscape: false,
 					modal: true,
 					show: {
 						effect: "fold"
@@ -662,6 +696,7 @@ function addAnchorPoints() {
 			$(".externalObject").append(divText);
 			$(".externalObject").dialog({
 				autoOpen: true,
+				closeOnEscape: false,
 				modal: true,
 				show: {
 					effect: "fold"
@@ -737,6 +772,7 @@ function addMinPricePoint() {
 			$(".externalObject").append(divText);
 			$(".externalObject").dialog({
 				autoOpen: true,
+				closeOnEscape: false,
 				modal: true,
 				show: {
 					effect: "fold"
@@ -955,13 +991,15 @@ function tooltipMouseout(d) {
 function tooltipClick(d) {
     // Identify the ID of selected point
     var pointID = "point_" + d3.select(this).attr("cx").replace(".", "_") + "_" + d3.select(this).attr("cy").replace(".", "_");
-	// Identify offset of screen to svg
-//	var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
+	/* // Identify offset of screen to svg
+	var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
+	*/
     // Initialize tooltip for clicked points
     var clickTooltip = d3.select("#div_click_tooltip")
         .append("div")
         .attr("id", pointID)
         .attr("class", "click_tooltip");
+	$("#" + pointID).draggable();
     if (d3.select(this).attr("r") < 8) { // if the clicked point is not selected
         var tooltipText = tooltipUpdate(d);
         // Click select animation
@@ -1094,7 +1132,6 @@ function initPlot() {
 			rawDataObject.maxRangeX = (isNaN(inputMaxX) ? 10000000000 : parseFloat(inputMaxX));
 			settings.yMin = (isNaN(inputMinY) ? settings.yMin : parseFloat(inputMinY));
 			settings.yMax = (isNaN(inputMaxY) ? settings.yMax : parseFloat(inputMaxY));
-			
 		}
 		$("#input_xmin").attr("placeholder", format(rawDataObject.minRangeX));
 		$("#input_xmax").attr("placeholder", format(rawDataObject.maxRangeX));
@@ -1133,16 +1170,6 @@ function initPlot() {
         addLine(data);
 		updateLine();
         addAnchorPoints();
-        addMinPricePoint();
-		
-        // To prevent data overwrite, log data only if it doesn't exist
-        if ((rawDataObject.userLog == "") && ($(".dot").length > 0)) {
-            var finalHeader = Object.keys(data[0]); // extract column headers
-            finalHeader.splice(finalHeader.indexOf("Category"), 1); // remove "category" key-value pair generated for the purpose of linkage
-			if ($.inArray("AnchorPerGB", finalHeader) > -1) {
-				finalHeader.splice(finalHeader.indexOf("AnchorPerGB"), 1); // remove "AnchorPerGB" key-value pair generated for the purpose of linkage
-			}
-            rawDataObject.userLog = finalHeader.toString().concat("\n"); // convert array to comma separated string
-        }
+        addMinPricePoint();		
     }
 }

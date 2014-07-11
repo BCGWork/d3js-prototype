@@ -47,10 +47,10 @@ function clickAll() {
 function addAskPrice(d) {
 	rawDataObject.newPointCategory = d;
 	
+	var newPointColor = $("#legend_" + d.replace(/'|;| /g, "") + " rect").attr("fill");
 	var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
-//		divText = "";
 		divText = "<b>Add Point for category:</b><br/>";
-	divText += d + "<br/>";
+	divText += "<font color=" + newPointColor + ">&#9632; </font>" + d + "<br/>";
 	divText += "<select id='add_point_selector' onchange='adjustNewPointType()'><option value='askPrice'>Customer Ask Price</option>";
 	divText += "<option value='newPoint'>New Grid Point</option>";
 	divText += "<option value='compPrice'>Competitor Price</option></select><br/>";
@@ -59,6 +59,7 @@ function addAskPrice(d) {
 	$(".externalObject").append(divText);
 	$(".externalObject").dialog({
 		autoOpen: true,
+		closeOnEscape: false,
 		modal: true,
 		show: {
 			effect: "fold"
@@ -103,8 +104,6 @@ function newPointHandler() {
         $.alert("Input out of bound! e.g. (" + minPriceX * 100 + ", " + ((minRangeY + maxRangeY) / 2).toFixed(2) + ")");
     } else {
 		addNewPoint(pointType, competitorName, newX, newY, newPointCategory);
-		var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + newX + "| " + newY;
-		rawDataObject.newPointList[id] = {"type":pointType, "category":newPointCategory, "compName":competitorName, "x":newX, "y":newY};
 	}
 }
 
@@ -140,7 +139,7 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 				}
 			} else {
 				if (isNaN(newX) & isNaN(newY)) {
-					$.alert("Only one empty field is allowed!");
+					$.alert("At most one empty field is allowed!");
 					return;
 				} else if (isNaN(newX) & !isNaN(newY)) {
 					var predY = newY;
@@ -149,12 +148,13 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 					var predX = newX;
 					var predY = pointData[i]["intercept"] + pointData[i]["slope"] * log10(predX);
 				} else {
-					$.alert("Please leave predicted value empty!");
-					return;
+					var predX = newX;
+					var predY = newY;
 				}
 			}
 		}
 	}
+	
 	// Add new point to svg
 	d3.select("g").append("g").attr("class", "newpoints");
 	if (pointType == "askPrice") { // if new customer ask price
@@ -164,7 +164,7 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 	} else { // if new grid point
 		var newPoint = d3.select(".newpoints").append("path").attr("d", d3.svg.symbol().type("square").size(100));
 	}
-	newPoint.attr("id", "new_point_" + newX.toString() + "_" + newY.toString().replace(/\./g, "_"))
+	newPoint.attr("id", "new_point_" + newX.toString().replace(/\./g, "_") + "_" + newY.toString().replace(/\./g, "_"))
 		.attr("class", "new_dot")
 		.style("zIndex", 10)
 		.style("fill", $("#legend_" + newPointCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
@@ -173,9 +173,13 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 		.on("contextmenu", function () {
 			d3.event.preventDefault(); // prevent right click menu from showing
 			d3.select(this).remove(); // remove dot
-			d3.select("#comp_price_text_" + newX.toString() + "_" + newY.toString().replace(/\./g, "_")).remove(); // remove text
-			d3.select("#new_point_tooltip_" + newX.toString() + "_" + newY.toString().replace(/\./g, "_")).remove(); // remove associated tooltip
-			var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + newX + "| " + newY;
+			d3.select("#comp_price_text_" + newX.toString().replace(/\./g, "_") + "_" + newY.toString().replace(/\./g, "_")).remove(); // remove text
+			d3.select("#new_point_tooltip_" + newX.toString().replace(/\./g, "_") + "_" + newY.toString().replace(/\./g, "_")).remove(); // remove associated tooltip
+			if (pointType == "newPoint") {
+				var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + predX + "| " + predY;
+			} else {
+				var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + newX + "| " + newY;
+			}
 			delete rawDataObject.newPointList[id];
 		})
 		.on("mouseover", function () {
@@ -201,6 +205,10 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 			newPointTooltip.transition().style("opacity", 0).style("display", "none");
 		});
 	if ($.inArray(pointType, ["askPrice", "compPrice"]) > -1) {
+		// Pass new point information to global
+		var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + newX + "| " + newY;
+		rawDataObject.newPointList[id] = {"type":pointType, "category":newPointCategory, "compName":competitorName, "x":newX, "y":newY};
+		// Move point to position
 		var textLabel = d3.select(".newpoints").append("text").text(competitorName)
 			.attr("id", "comp_price_text_" + newX.toString() + "_" + newY.toString().replace(/\./g, "_"))
 			.attr("fill", $("#legend_" + newPointCategory.replace(/'|;| /g, "") + " rect").attr("fill"))
@@ -209,8 +217,7 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 			.style("stroke-width", "0.5px");
 		textLabel.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + (xScale(newX) + 12) + "," + (yScale(newY) + 5) + ")";});
 		newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(newX) + "," + yScale(newY) + ")";});
-/*
-		newPoint.on("click", function (d) {
+/*		newPoint.on("click", function (d) {
 			rawDataObject.competitorCategory = newPointCategory;
 			rawDataObject.competitorRevenue = newX;
 			$(".externalObject").remove();
@@ -233,13 +240,16 @@ function addNewPoint(pointType, competitorName, newX, newY, newPointCategory) {
 		});
 */
 	} else {
+		// Pass new point information to global
+		var id = pointType + "| " + newPointCategory + "| " + competitorName + "| " + predX + "| " + predY;
+		rawDataObject.newPointList[id] = {"type":pointType, "category":newPointCategory, "compName":competitorName, "x":predX, "y":predY};
+		// Move point to position
 		newPoint.transition().duration(1000).ease("elastic").attr("transform", function (d) {return "translate(" + xScale(predX) + "," + yScale(predY) + ")";});
 	}
 	$("#new_point_div").hide();
 }
 
-// Add new competitor price
-/*
+/* // Add new competitor price
 function addCompetitorPrice () {
     var xScale = rawDataObject.xScale,
         yScale = rawDataObject.yScale,

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <title>B2B Pricing Suite</title>
-	<link rel="icon" type="image/x-icon" href="magic_wand.ico">
+	<link rel="icon" type="image/x-icon" href="logo.ico">
     <link rel="stylesheet" type="text/css" href="styles.css">
 	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css">
     <script type="text/javascript" src="library/jquery-1.11.0.min.js"></script>
@@ -32,7 +32,6 @@
 		rawDataObject.pbXList = ["TAM"];
 		rawDataObject.pbYList = ["Grid deviation"];
 		rawDataObject.pbZList = ["Customer revenue", "Product revenue"];
-        rawDataObject.userLog = "";
         rawDataObject.margin = {
             top: 50,
             right: 150,
@@ -53,18 +52,19 @@
 	<div class="ui-widget-header ui-corner-all">
 		<div align="center">
 			<a href="mailto:cui.bo@bcg.com?Subject=BCG B2B Pricing Suite Bug" style="text-decoration:none">
-				<img src="magic_wand.ico" width=50 height=50/>
+				<img src="logo.ico" width=50 height=50/>
 				<span class="title">B2B Pricing Suite</font></span>
 				<span class="subtitle"><i>by The Boston Consulting Group</i></span>
 			</a>
 		</div>
-		<div style="text-align:right" onclick="changeLog()">v0.59a</div>
+		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6</div>
     </div>
     <div id="user_inputs" class="ui-widget-header ui-corner-all">
 		<div id="file_inputs">
 			<input id="files" class="file" type="file" name="files[]" />
 			<div id="fake_file_input">
-				<input type="text" value="Choose Data File" readonly="readonly" class="buttons" />
+				<input type="text" value="Load Data File" readonly="readonly" class="buttons" />
+				<span id="file_name"></span>
 				<output id="upload_status"></output>
 			</div>
 		</div>
@@ -78,10 +78,7 @@
 		<div id="control_panel">
 			<button id="refresh_grid" class="buttons" onclick="updateAllSvg()">Refresh</button>
 			<button id="print_grid" class="buttons" onclick="printGrid()">View/Print Grid</button>
-			<br/>
 			<button id="export_data" class="buttons" onclick="exportToText()">Export Data</button>
-			<button id="log_data" class="buttons" onclick="logOutput()">Log Data</button>
-			<output id="log_status"></output>
 			<hr/>
 			<div id="choose_variables">
 				<select id="choose_x" style="display:none"></select>
@@ -112,7 +109,7 @@
 				<button id="click_all" class="buttons" onclick="clickAll()">Click All</button>
 			</div>
 			<br/>
-			<div id="overwrite_range">
+			<div id="overwrite_range" onchange="updateAllSvg()">
 				<span>Overwrite axes range: </span>
 				<input type="text" id="input_xmin" placeholder="enter minimum x">
 				<input type="text" id="input_xmax" placeholder="enter maximum x">
@@ -136,9 +133,7 @@
 	</div>
 	
 	<script type="text/javascript" src="jui_style.js"></script>
-<!--
 	<script type="text/javascript" src="time_bomb.js"></script>
--->
 </body>
 
 </html>
