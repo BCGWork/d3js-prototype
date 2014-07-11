@@ -145,7 +145,7 @@ function popControl() {
 		retrieveSession(newBu);
 		updateAllSvg();
 	}
-/*
+
     $(".checkbox")[1].checked = true;
     $(".checkbox")[6].checked = true;
     $(".checkbox")[7].checked = true;
@@ -161,7 +161,7 @@ function popControl() {
 	$(".selectall_checkbox").each(function(){$(this).button("refresh");});
 	$(".checkbox").each(function(){$(this).button("refresh");});
 	$(".tooltip_display").each(function(){$(this).button("refresh");});
-*/
+
 }
 
 // Define x-axis variable
