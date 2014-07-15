@@ -5,8 +5,7 @@ $(window).resize(function () {
     updateAllSvg();
 });
 
-// Click outside foreignObject will hide it
-/*
+/* // Click outside foreignObject will hide it
 $(document).mouseup(function (e) {
     var container = $(".externalObject");
     if (!container.is(e.target) & container.has(e.target).length === 0) { // if the target of the click isn't the container nor a descendant of the container
@@ -48,6 +47,15 @@ $.extend({
     }
 });
 
+// Emit click signals to selection
+jQuery.fn.doClick = function () {
+	this.each(function (i, e) {
+		var evt = document.createEvent("MouseEvents");
+		evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		e.dispatchEvent(evt);
+	});
+};
+
 // Sort number
 function sortNumber(a, b) {
     return a - b;
@@ -72,22 +80,20 @@ function detectUnique(value, index, self) {
 
 // Print grid windows
 function printGrid() {
-    var width = $("svg").attr("width"), // get svg width
-        height = $("svg").attr("height"), // get svg height
-        gridContent = $("#data_visualization").html(), // get svg content
+    var gridContent = $("#data_visualization").html(), // get svg content
         printWindow = window.open(); // open new window
-    printWindow.document.write("<html><title>Grid Visualization</title><head>"); // open tags
-    printWindow.document.write("<link rel='icon' type='image/x-icon' href='magic_wand.ico'>"); // import icon
+
+    printWindow.document.write("<html><title>View/Print Grid</title><head>"); // open tags
     printWindow.document.write("<link rel='stylesheet' type='text/css' href='styles.css'>"); // import default css
-    printWindow.document.write("<link rel='stylesheet' type='text/css' href='library/jquery-ui-1.10.4.custom.min.css'>"); // import JQuery UI css
+    printWindow.document.write("<link rel='stylesheet' type='text/css' href='library/jquery-ui.min.css'>"); // import JQuery UI css
+	printWindow.document.write("<style type='text/css' media='print'>@page{size: landscape;}</style>"); // print in landscape format
     printWindow.document.write("<script type='text/javascript' src='library/jquery-1.11.0.min.js'></script>"); // import JQuery
-    printWindow.document.write("<script type='text/javascript' src='library/jquery-ui-1.10.4.custom.min.js'></script>"); // import JQuery UI js
+    printWindow.document.write("<script type='text/javascript' src='library/jquery-ui.min.js'></script>"); // import JQuery UI js
     printWindow.document.write("</head><body>");
     printWindow.document.write("<button class='buttons' onclick='window.print()'>Print</button>"); // create print button
     printWindow.document.write("<button class='buttons' onclick='window.close()'>Close</button><hr/>"); // create close button
     printWindow.document.write(gridContent); // reproduce svg content
-	printWindow.document.write("<script>$('#customize_field').remove();</script>");
-    printWindow.document.write("<script type='text/javascript' src='jui_style.js'></script>"); // Trigger JQuery UI styling
+	printWindow.document.write("<script type='text/javascript'>$('#customize_field').remove();$('.buttons').button();</script>");
     printWindow.document.write("</body></html>"); // end page
 }
 
@@ -176,6 +182,7 @@ function retrieveSession(sessionName) {
         storageAxesRange = storageObject.storageAxesRange,
         storageFilters = storageObject.storageFilters,
         storageTooltips = storageObject.storageTooltips;
+	var filterName = [];
 
     $("#choose_x").val(storageNames[0]);
     $("#choose_y").val(storageNames[1]);
@@ -184,10 +191,17 @@ function retrieveSession(sessionName) {
     $("#input_ymin").val(storageAxesRange[2]);
     $("#input_ymax").val(storageAxesRange[3]);
     $(".checkbox").each(function (i) {
+		filterName.push($(this).attr("name"));
         $.inArray(i, storageFilters) > -1 ? this.checked = true : this.checked = false;
+		$(this).button("refresh");
     });
+	for (var i = 0; i < filterName.filter(detectUnique).length; i++) {
+		updateSelectAll(filterName.filter(detectUnique)[i]);
+	}
     $(".tooltip_display").each(function (i) {
         $.inArray(i, storageTooltips) > -1 ? this.checked = true : this.checked = false;
+		$(this).button("refresh");
+		updateSelectAll("tooltip");
     });
 }
 
@@ -204,6 +218,7 @@ function switchToGrid() {
 function updateAllSvg() {
     rawDataObject.currentData = subsetData(rawDataObject.buData);
     initPlot();
+	pbDropDown();
     if ((typeof (rawDataObject.currentData) != "undefined") & (rawDataObject.currentData.length > 0) & ($("#choose_x_pb").val() !== null) & ($("#choose_y_pb").val() !== null)) {
         createPbCategory(rawDataObject.currentData);
         createPlaybook();
@@ -213,6 +228,22 @@ function updateAllSvg() {
 // Add change log button
 function changeLog() {
     var changeLogText = "<h3>Version Log</h3>";
+	
+	var v0_70Change = "<h4><u>v0.7</u></h4><ol>";
+	v0_70Change += "<li>One combination of filters will be plotted right after choosing business unit.</li>";
+	v0_70Change += "<li>Redesigned checkbox area for better appearance.</li>";
+	v0_70Change += "<li>Redesigned all drop down menus.</li>";
+	v0_70Change += "<li>Fixed a bug causing check boxes not updating when switching among business units.</li>";
+	v0_70Change += "<li>Fixed a bug causing customer filter in playbook not working.</li>";
+	v0_70Change += "<li>Reformatted the area to overwrite axes range.</li>";
+	v0_70Change += "<li>Printing grid is now defaulted to landscape format.</li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "<li></li>";
+	v0_70Change += "</ol>";
 
 	var v0_60Change = "<h4><u>v0.6</u></h4><ol>";
 	v0_60Change += "<li>Exported data will contain all rows from original data source.</li>";
@@ -288,6 +319,7 @@ function changeLog() {
     v0_20Change += "<li>Some other minor bug fixes.</li>";
     v0_20Change += "</ol>";
 
+	changeLogText += v0_70Change;
 	changeLogText += v0_60Change;
     changeLogText += v0_50Change;
     changeLogText += v0_40Change;

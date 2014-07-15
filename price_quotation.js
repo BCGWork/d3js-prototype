@@ -1,15 +1,19 @@
 // Detect customer pool and extract unique values after subsetting data
 function detectCustomer() {
     $("#customer_filter").empty();
-    $("#customer_filter").append("<option value='all'>All Customers</option>");
+    $("#customer_filter").append("<option value='all'> All Customers </option>");
     var data = rawDataObject.currentData,
         customerName = rawDataObject.customerName,
         customerData = extractValue(data, customerName),
         customerList = customerData.filter(detectUnique);
     for (var i = 0; i < customerList.length; i++) {
-        $("#customer_filter").append("<option value=" + customerList[i] + ">" + customerList[i] + "</option>");
+        $("#customer_filter").append("<option value=" + customerList[i] + "> " + customerList[i] + " </option>");
     }
-    $("#customize_field").show();
+	$("#customer_filter").selectmenu({
+		width: $("#customer_filter").width() + 20
+	});
+	$("#customer_filter").selectmenu("refresh");
+	$("#customer_filter").on("selectmenuchange", filterCustomer);
 }
 
 // Filter customer on scatter plot
@@ -31,14 +35,7 @@ function filterCustomer() {
     }
 }
 
-// Show all tooltips for current points
-jQuery.fn.doClick = function () {
-	this.each(function (i, e) {
-		var evt = document.createEvent("MouseEvents");
-		evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-		e.dispatchEvent(evt);
-	});
-};
+// Click all dots on grid
 function clickAll() {
 	$(".dot").doClick();
 }

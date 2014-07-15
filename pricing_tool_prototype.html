@@ -6,13 +6,12 @@
     <title>B2B Pricing Suite</title>
 	<link rel="icon" type="image/x-icon" href="logo.ico">
     <link rel="stylesheet" type="text/css" href="styles.css">
-	<link rel="stylesheet" type="text/css" href="library/jquery-ui-1.10.4.custom.min.css">
+	<link rel="stylesheet" type="text/css" href="library/jquery-ui.min.css">
     <script type="text/javascript" src="library/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="library/jquery.csv-0.71.min.js"></script>
     <script type="text/javascript" src="library/d3.min.js"></script>
-	<script type="text/javascript" src="library/jquery-ui-1.10.4.custom.min.js"></script>
+	<script type="text/javascript" src="library/jquery-ui.min.js"></script>
 	<script type="text/javascript" src="library/jquery.mask.min.js"></script>
-	
     <script type="text/javascript">
         // Declare global variables
         var rawDataObject = {};
@@ -41,7 +40,6 @@
         rawDataObject.width = $(window).width() * 0.79 - rawDataObject.margin.left - rawDataObject.margin.right;
         rawDataObject.height = $(window).height() * 0.85 - rawDataObject.margin.top - rawDataObject.margin.bottom;
     </script>
-	
 	<script type="text/javascript" src="function_library.js"></script>
 	<script type="text/javascript" src="grid_visualization.js"></script>
 	<script type="text/javascript" src="price_quotation.js"></script>
@@ -57,7 +55,7 @@
 				<span class="subtitle"><i>by The Boston Consulting Group</i></span>
 			</a>
 		</div>
-		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6</div>
+		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6.1</div>
     </div>
     <div id="user_inputs" class="ui-widget-header ui-corner-all">
 		<div id="file_inputs">
@@ -68,8 +66,9 @@
 				<output id="upload_status"></output>
 			</div>
 		</div>
-		<br/>
-		<select id="choose_bu" onchange="popControl()" style="display:none"></select>
+		<div id="bu_div" style="display:none">
+			<select id="choose_bu"></select>
+		</div>
     </div>
 	<div id="control_tabs" style="width:20%; float:left; display:none">
 		<ul>
@@ -81,18 +80,20 @@
 			<button id="export_data" class="buttons" onclick="exportToText()">Export Data</button>
 			<hr/>
 			<div id="choose_variables">
-				<select id="choose_x" style="display:none"></select>
-				<select id="choose_y" style="display:none"></select>
+				<select id="choose_x"></select>
+				<br/>
+				<select id="choose_y"></select>
 			</div>
-			<div id="playbook_choose_variables" style="display:none" onchange="createPlaybook()">
+			<div id="playbook_choose_variables" style="display:none">
 				<select id="choose_x_pb"></select>
+				<br/>
 				<select id="choose_y_pb"></select>
+				<br/>
 				<select id="choose_z_pb"></select>
 			</div>
-			<div id="filter_checkbox" style="width: 50%; float:left" onchange="updateAllSvg()"></div>
-			<div id="tooltip_checkbox" style="width: 50%; float:right">
-				<br/>
-			</div>
+			<br/>
+			<div id="filter_checkbox" style="width: 48%; float:left" onchange="updateAllSvg()"></div>
+			<div id="tooltip_checkbox" style="width: 48%; float:right"></div>
 		</div>
 	</div>
 	<div id="visualization_tabs" style="width:79%; float:right; display:none">
@@ -104,25 +105,24 @@
 		</ul>
 		<div id="data_visualization" class="visualization_div">
 			<output id="error_display"></output>
-			<div id="customize_field" style="display:none">
-				<select id="customer_filter" onchange="filterCustomer()"></select>
+			<div id="customize_field">
+				<select id="customer_filter" style="width:103px"></select>
+				<br/>
 				<button id="click_all" class="buttons" onclick="clickAll()">Click All</button>
 			</div>
-			<br/>
 			<div id="overwrite_range" onchange="updateAllSvg()">
-				<span>Overwrite axes range: </span>
-				<input type="text" id="input_xmin" placeholder="enter minimum x">
-				<input type="text" id="input_xmax" placeholder="enter maximum x">
-				<input type="text" id="input_ymin" placeholder="enter minimum y">
-				<input type="text" id="input_ymax" placeholder="enter maximum y">
+				<span><b>
+					Overwrite x-axis: ( <input type="text" id="input_xmin" placeholder="enter minimum x"> , <input type="text" id="input_xmax" placeholder="enter maximum x"> ) &nbsp;&nbsp;&nbsp;
+					Overwrite y-axis: ( <input type="text" id="input_ymin" placeholder="enter minimum y"> , <input type="text" id="input_ymax" placeholder="enter maximum y"> )
+				</b></span>
 			</div>
 		</div>
 		<div id="playbook_viz" class="visualization_div">
 			<div id="pb_customize_field">
-				<select id="catDropDown" onchange="pbFilterCustomer()"></select>
+				<select id="catDropDown"></select>
+				<br/>
 				<button id="pb_click_all" class="buttons" onclick="pbClickAll()">Click All</button>
 			</div>
-			<br/>
 			<div id="move_pb_axis">
 				<span>Move y-axis to: </span>
 				<input type="text" id="pb_new_y_axis" placeholder="enter y-axis %" value="50">

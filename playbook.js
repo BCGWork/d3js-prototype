@@ -1,14 +1,17 @@
+// Move y-axis
 function changePBaxis(){
     var xMove = parseFloat($("#pb_new_y_axis").val().substr(0,2))/100;
     totXMove = xMove / 0.5;
     return totXMove;
 }
 
+// Click all dots on playbook
 function pbClickAll() {
     $(".pbDiv_click_tooltip").remove();
     $(".pb_circle").filter(function(){ return $(this).css("opacity") == 1;}).doClick()
 }
 
+// Tooltip on click
 function pbTooltipClick(d) {
     // Identify the ID of selected point
     var data = rawDataObject.currentData;
@@ -44,17 +47,19 @@ function pbTooltipClick(d) {
     }
 }
 
-//Populate the dropdown selection
+//Populate playbook drop down menu
 function pbDropDown() {
 	var data = rawDataObject.currentData,
 		customerName = rawDataObject.customerName,
 		uniqueCustomer = extractValue(data, customerName).filter(detectUnique);
 	$("#catDropDown").empty();
-	$("#catDropDown").append("<option value='defaultVal'>All Customers</option>");
+	$("#catDropDown").append("<option value='defaultVal'> All Customers </option>");
     for (i = 0; i < uniqueCustomer.length; i++) {
-        $("#catDropDown").append("<option>" + uniqueCustomer[i] + "</option>")
+        $("#catDropDown").append("<option value='" + uniqueCustomer[i] + "'> " + uniqueCustomer[i] + " </option>")
     };
-	$("#catDropDown").show();
+	$("#catDropDown").selectmenu({width: $("#customer_filter").width() + 20});
+	$("#catDropDown").selectmenu("refresh");
+	$("#catDropDown").on("selectmenuchange", pbFilterCustomer);
 }
 
 function createPbCategory(data) {
@@ -404,6 +409,10 @@ function initPlaybook() {
 		$("#choose_z_pb").append("<option value='" + pbZList[i] + "'>size: " + pbZList[i] + "</option>");
 	}
     $("#playbook_choose_variables").show();
+	$("#choose_x_pb").selectmenu({width: $("#choose_x_pb").width() + 20});
+	$("#choose_y_pb").selectmenu({width: $("#choose_y_pb").width() + 20});
+	$("#choose_z_pb").selectmenu({width: $("#choose_z_pb").width() + 20});
+	$("#choose_x_pb, #choose_y_pb, #choose_z_pb").on("selectmenuchange", createPlaybook);
 
     $("#pb_new_y_axis").mask("00%");
 	

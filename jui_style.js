@@ -10,9 +10,6 @@ $(document).ready(function () {
 	// Format text box
 	$("input").addClass("ui-corner-all");
 	
-	// Format drop down
-	$("select").addClass("ui-corner-all");
-	
 });
 
 
