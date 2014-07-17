@@ -1,6 +1,7 @@
 // Detect customer pool and extract unique values after subsetting data
 function detectCustomer() {
     $("#customer_filter").empty();
+	$("#customer_filter").width("100px");
     $("#customer_filter").append("<option value='all'> All Customers </option>");
     var data = rawDataObject.currentData,
         customerName = rawDataObject.customerName,
@@ -72,6 +73,8 @@ function addAskPrice(d) {
 		}
 	});
 	
+	$("#new_point_x").attr("size", $("#new_point_x").attr("placeholder").length);
+	$("#new_point_y").attr("size", $("#new_point_y").attr("placeholder").length);
 	$("#new_point_x").mask("#,##0", {reverse:true, maxlength:false});
 	$("#new_point_y").mask("#0.00", {reverse:true, maxlength:false});
 }
@@ -83,6 +86,7 @@ function adjustNewPointType() {
 	} else {
 		$("#competitor_name_0").remove();
 	}
+	$("#competitor_name_0").attr("size", $("#competitor_name_0").attr("placeholder").length);
 }
 
 function newPointHandler() {

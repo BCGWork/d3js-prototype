@@ -48,14 +48,15 @@
 
 <body>
 	<div class="ui-widget-header ui-corner-all">
-		<div align="center">
+		<div align="center" style="padding-left:120px">
 			<a href="mailto:cui.bo@bcg.com?Subject=BCG B2B Pricing Suite Bug" style="text-decoration:none">
-				<img src="logo.ico" width=50 height=50/>
+				<img src="logo.ico" width=50 height=50 />
 				<span class="title">B2B Pricing Suite</font></span>
 				<span class="subtitle"><i>by The Boston Consulting Group</i></span>
 			</a>
+			<a href="http://www.sandisk.com" style="float:right" target="_blank"><img src="client_logo.png" width=120 height=45 /></a>
 		</div>
-		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6.1</div>
+		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6.9</div>
     </div>
     <div id="user_inputs" class="ui-widget-header ui-corner-all">
 		<div id="file_inputs">
@@ -78,7 +79,12 @@
 			<button id="refresh_grid" class="buttons" onclick="updateAllSvg()">Refresh</button>
 			<button id="print_grid" class="buttons" onclick="printGrid()">View/Print Grid</button>
 			<button id="export_data" class="buttons" onclick="exportToText()">Export Data</button>
-			<hr/>
+			<button id="note_button" class="buttons" onclick="toggleNote()">Sticky Notes</button>
+			<div id="notepad_div" class="ui-widget-content" style="display:none; position:relative; z-index:9">
+				<span class="ui-widget-header" style="cursor:move">Sticky Notes</span>
+				<textarea id="notepad" style="position:absolute; z-index:1"></textarea>
+			</div>
+			<br/><hr/>
 			<div id="choose_variables">
 				<select id="choose_x"></select>
 				<br/>
@@ -92,11 +98,11 @@
 				<select id="choose_z_pb"></select>
 			</div>
 			<br/>
-			<div id="filter_checkbox" style="width: 48%; float:left" onchange="updateAllSvg()"></div>
-			<div id="tooltip_checkbox" style="width: 48%; float:right"></div>
+			<div id="filter_checkbox" style="width: 45%; float:left" onchange="updateAllSvg()"></div>
+			<div id="tooltip_checkbox" style="width: 50%; float:right"></div>
 		</div>
 	</div>
-	<div id="visualization_tabs" style="width:79%; float:right; display:none">
+	<div id="visualization_tabs" style="width:79%; float:left; display:none">
 		<ul>
 			<li><a href="#data_visualization" onclick="switchToGrid()">Grid Visualization</a></li>
 			<li><a href="#playbook_viz" onclick="initPlaybook()">Playbook</a></li>
@@ -104,9 +110,8 @@
 			<li><a href="#management_report">Management Report</a></li>
 		</ul>
 		<div id="data_visualization" class="visualization_div">
-			<output id="error_display"></output>
 			<div id="customize_field">
-				<select id="customer_filter" style="width:103px"></select>
+				<select id="customer_filter"></select>
 				<br/>
 				<button id="click_all" class="buttons" onclick="clickAll()">Click All</button>
 			</div>
@@ -115,6 +120,8 @@
 					Overwrite x-axis: ( <input type="text" id="input_xmin" placeholder="enter minimum x"> , <input type="text" id="input_xmax" placeholder="enter maximum x"> ) &nbsp;&nbsp;&nbsp;
 					Overwrite y-axis: ( <input type="text" id="input_ymin" placeholder="enter minimum y"> , <input type="text" id="input_ymax" placeholder="enter maximum y"> )
 				</b></span>
+				<br/>
+				<output id="error_display"></output>
 			</div>
 		</div>
 		<div id="playbook_viz" class="visualization_div">
@@ -124,8 +131,11 @@
 				<button id="pb_click_all" class="buttons" onclick="pbClickAll()">Click All</button>
 			</div>
 			<div id="move_pb_axis">
-				<span>Move y-axis to: </span>
+				<span><b>Move y-axis to: 
 				<input type="text" id="pb_new_y_axis" placeholder="enter y-axis %" value="50">
+				</b></span>
+				<br/>
+				<output id="pb_error_display"></output>
 			</div>
 		</div>
 		<div id="chessboard"></div>

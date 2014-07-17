@@ -79,7 +79,7 @@ function readData(file) {
 // Populate drop down menu for business unit
 function defineBu(name) {
     $("#choose_bu").empty();
-    $("#choose_bu").append("<option value=''> Select a business unit: &emsp;&emsp;</option>");
+    $("#choose_bu").append("<option value=''> Select a business unit: </option>");
 	if (typeof(rawDataObject.dataObject[0][name]) == "undefined") {
 		$("#choose_bu").append("<option value='default Business Unit'> Proceed with default Business Unit </option>");
 	} else {
@@ -89,7 +89,9 @@ function defineBu(name) {
 		}
 	}
 	$("#bu_div").show("fade");
-	$("#choose_bu").selectmenu();
+	var cnt = 0;
+	$("#choose_bu option").each(function(){ cnt = $(this).text().length > cnt ? $(this).text().length : cnt});
+	$("#choose_bu").selectmenu({width: cnt * 7});
 	$("#choose_bu").on("selectmenuchange", popControl);
 }
 
@@ -188,6 +190,7 @@ function defineY(dataHeader) {
 // Define tooltip display variable
 function defineTooltip(dataHeader) {
     $("#tooltip_checkbox").empty();
+	dataHeader.sort();
 	var tooltipHideList = ["Category", "AnchorPerGB", "pbCategory"];
 	tooltipHideList.push(rawDataObject.anchorName.x);
 	tooltipHideList.push(rawDataObject.anchorName.y);
@@ -205,7 +208,7 @@ function defineTooltip(dataHeader) {
 
 	$("#tooltip_checkbox").accordion({
 		header: "h3",
-		active: false,
+//		active: false,
 		collapsible: true,
 		heightStyle: "content"
     });
@@ -294,7 +297,7 @@ function createCheckBox(data) {
 	
 	$("#filter_checkbox div").accordion({
 		header: "h3",
-		active: false,
+//		active: false,
 		collapsible: true,
 		heightStyle: "content"
     });
@@ -622,7 +625,7 @@ function addLine(data) {
 				
 				var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
 					divText = "<b>Enter New Discount Slope:</b>";
-				divText += "<input type='text' id=new_slope placeholder='current value: " + (coord.slope / coord.y2).toFixed(4) + "'/>";
+				divText += "<input type='text' id=new_slope placeholder='current discount: " + (coord.slope / coord.y2).toFixed(4) + "'/>";
 				$(".externalObject").append(divText);
 				$(".externalObject").dialog({
 					autoOpen: true,
@@ -645,6 +648,8 @@ function addLine(data) {
 						}
 					}
 				});
+				
+				$("#new_slope").attr("size", $("#new_slope").attr("placeholder").length);
             });
     }
     rawDataObject.pointData = pointData;
@@ -701,7 +706,7 @@ function addAnchorPoints() {
 			rawDataObject.selectedAnchorId = d3.select(this).attr("id");
 			var dialogBox = $("#data_visualization").append("<div class='externalObject'></div>"),
 				divText = "<b>Enter New Anchor Coordinates:</b>";
-			divText += "<input type='text' id=new_anchor_x placeholder='current x value: " + format(Math.pow(10, d["x2"])) + "'/>";
+			divText += "<input type='text' id=new_anchor_x placeholder='current x value: " + format(Math.pow(10, d["x2"])) + "'/><br/>";
 			divText += "<input type='text' id=new_anchor_y placeholder='current y value: " + d["y2"].toFixed(2) + "'/>";
 			$(".externalObject").append(divText);
 			$(".externalObject").dialog({
@@ -722,6 +727,8 @@ function addAnchorPoints() {
 				}
 			});
 			
+			$("#new_anchor_x").attr("size", $("#new_anchor_x").attr("placeholder").length);
+			$("#new_anchor_y").attr("size", $("#new_anchor_y").attr("placeholder").length);
 			$("#new_anchor_x").mask("#,##0", {reverse:true, maxlength:false});
 			$("#new_anchor_y").mask("#0.00", {reverse:true, maxlength:false});
         });
@@ -798,6 +805,7 @@ function addMinPricePoint() {
 				}
 			});
 			
+			$("#new_minx").attr("size", $("#new_minx").attr("placeholder").length);
 			$("#new_minx").mask("#,##0", {reverse:true, maxlength:false});
         });
 

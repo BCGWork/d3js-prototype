@@ -206,6 +206,7 @@ function addLegend(data) {
 function createPlaybook() {
 	$("#pb_svg").remove();
 	$("#pbDiv_click_tooltip").remove();
+
     //Read data and store variables for later use
     var data = rawDataObject.currentData,
 		xName = $("#choose_x_pb").val(),

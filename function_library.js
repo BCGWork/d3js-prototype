@@ -1,8 +1,10 @@
 // Resize window event listener
 $(window).resize(function () {
     rawDataObject.width = $(window).width() * 0.79 - rawDataObject.margin.left - rawDataObject.margin.right;
-    rawDataObject.height = $(window).height() * 0.77 - rawDataObject.margin.top - rawDataObject.margin.bottom;
-    updateAllSvg();
+    rawDataObject.height = $(window).height() * 0.85 - rawDataObject.margin.top - rawDataObject.margin.bottom;
+	if (typeof(rawDataObject.currentData) != "undefined") {
+		updateAllSvg();
+	}
 });
 
 /* // Click outside foreignObject will hide it
@@ -157,6 +159,19 @@ function exportToText() {
     downloadLink.click();
 }
 
+// Toggle notepad
+function toggleNote() {
+	$("#notepad").width(250);
+	$("#notepad").height(250);
+	$("#notepad_div").draggable({handles: "span"});
+	$("#notepad").resizable();
+	if ($("#notepad_div").css("display") == "none") {
+		$("#notepad_div").css("display", "inline-block");
+	} else {
+		$("#notepad_div").hide();
+	}
+}
+
 // Save current session to local storage
 function saveSession(sessionName) {
     var storageObject = {};
@@ -222,30 +237,40 @@ function updateAllSvg() {
     if ((typeof (rawDataObject.currentData) != "undefined") & (rawDataObject.currentData.length > 0) & ($("#choose_x_pb").val() !== null) & ($("#choose_y_pb").val() !== null)) {
         createPbCategory(rawDataObject.currentData);
         createPlaybook();
-    }
+    } else {
+		$("#pb_svg").remove();
+		$("#pbDiv_click_tooltip").remove();
+		$("#pb_error_display").html("<font color='red'>Insufficient data, check more filters!</font>").show();
+        setTimeout(function () { $("#pb_error_display").fadeOut("slow"); }, 500);
+	}
 }
 
 // Add change log button
 function changeLog() {
-    var changeLogText = "<h3>Version Log</h3>";
+    var changeLogText = "<div class='log_div'>";
 	
-	var v0_70Change = "<h4><u>v0.7</u></h4><ol>";
+	var v0_70Change = "<h4>v0.7</h4><div><ol>";
 	v0_70Change += "<li>One combination of filters will be plotted right after choosing business unit.</li>";
 	v0_70Change += "<li>Redesigned checkbox area for better appearance.</li>";
 	v0_70Change += "<li>Redesigned all drop down menus.</li>";
 	v0_70Change += "<li>Fixed a bug causing check boxes not updating when switching among business units.</li>";
-	v0_70Change += "<li>Fixed a bug causing customer filter in playbook not working.</li>";
-	v0_70Change += "<li>Reformatted the area to overwrite axes range.</li>";
+	v0_70Change += "<li>Fixed a bug causing playbook customer filter not updating when switching between modules.</li>";
+	v0_70Change += "<li>Reformatted the area for overwriting axes range.</li>";
+	v0_70Change += "<li>Width of textbox in dialog windows is now dynamically set based on placeholder values.</li>";
+	v0_70Change += "<li>Slightly improved positioning for Control Panel and plot area, so that plots won't go to next line when browser is resized.</li>";
+	v0_70Change += "<li>Placeholder</li>";
+	v0_70Change += "<li>Placeholder</li>";
+	v0_70Change += "<li>Placeholder</li>";
+	v0_70Change += "<li>Added button to toggle sticky notes.</li>";
 	v0_70Change += "<li>Printing grid is now defaulted to landscape format.</li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "<li></li>";
-	v0_70Change += "</ol>";
+	v0_70Change += "<li>Tooltip options will always be sorted in alphabetical order.</li>";
+	v0_70Change += "<li>Added placeholder for client logo.</li>";
+	v0_70Change += "<li>Reformatted change log window.</li>";
+	v0_70Change += "<li>Fixed some minor bugs to standardize all modules.</li>";
+	v0_70Change += "<li>Extended expiration date to 2014-07-25.</li>";
+	v0_70Change += "</ol></div>";
 
-	var v0_60Change = "<h4><u>v0.6</u></h4><ol>";
+	var v0_60Change = "<h4>v0.6</h4><div><ol>";
 	v0_60Change += "<li>Exported data will contain all rows from original data source.</li>";
 	v0_60Change += "<li>Added color for all quadrants in playbook.</li>";
 	v0_60Change += "<li>Enabled manual overwrite of y-axis position in playbook.</li>";
@@ -264,9 +289,9 @@ function changeLog() {
 	v0_60Change += "<li>Remade headings: Click title to Email; Click version number to view change log; Changed logo.</li>";
 	v0_60Change += "<li>Minor opacity changes when interacting with points.</li>";
 	v0_60Change += "<li>Extended expiration date to 2014-07-18.</li>";
-	v0_60Change += "</ol>";
+	v0_60Change += "</ol></div>";
 	
-    var v0_50Change = "<h4><u>v0.5</u></h4><ol>";
+    var v0_50Change = "<h4>v0.5</h4><div><ol>";
 	v0_50Change += "<li>Applied new theme to entire tool and reformatted most layout.</li>";
 	v0_50Change += "<li>Added animation for some sections when entering and leaving.</li>";
 	v0_50Change += "<li>New points (ask price, competitor price, grid point) will be memorized and resumed when detected. Right-click removes them completely.</li>";
@@ -277,9 +302,9 @@ function changeLog() {
     v0_50Change += "<li>Fixed a bug causing svg to move outside visualization panel when resizing window.</li>";
 	v0_50Change += "<li>Extended expiration date to 2014-07-11.</li>";
 	v0_50Change += "<li>Some other minor bug fixes and code clean up.</li>"	
-    v0_50Change += "</ol>";
+    v0_50Change += "</ol></div>";
 
-    var v0_40Change = "<h4><u>v0.4</u></h4><ol>";
+    var v0_40Change = "<h4>v0.4</h4><div><ol>";
     v0_40Change += "<li>Established framework and integrate Playbook module.</li>";
     v0_40Change += "<li>Separated Business Unit from filters and changed underlying logic.</li>";
     v0_40Change += "<li>Optimized automatic anchor points placement if missing.</li>";
@@ -293,9 +318,9 @@ function changeLog() {
     v0_40Change += "<li>Browser resolution will now be detected and used for positioning and scaling.</li>";
     v0_40Change += "<li>Clicking on a grid line will highlight it and gray out the rest.</li>";
     v0_40Change += "<li>Extended expiration date to 2014-07-07.</li>";
-    v0_40Change += "</ol>";
+    v0_40Change += "</ol></div>";
 
-    var v0_30Change = "<h4><u>v0.3</u></h4><ol>";
+    var v0_30Change = "<h4>v0.3</h4><div><ol>";
     v0_30Change += "<li>Enabled addition of new grid point by clicking on legend.</li>";
     v0_30Change += "<li>Enabled addition of competitor price after adding customer ask price.</li>";
     v0_30Change += "<li>Rescaled grid to [100, 100Billion].</li>";
@@ -303,9 +328,9 @@ function changeLog() {
     v0_30Change += "<li>Filters will now show in tooltip options.</li>";
     v0_30Change += "<li>Added &quot;selectAll&quot; checkbox for all filters.</li>";
     v0_30Change += "<li>Extended expiration date to 2014-06-24.</li>";
-    v0_30Change += "</ol>";
+    v0_30Change += "</ol></div>";
 
-    var v0_20Change = "<h4><u>v0.2</u></h4><ol>";
+    var v0_20Change = "<h4>v0.2</h4><div><ol>";
     v0_20Change += "<li>Enabled customer filter feature to view selected customers.</li>";
     v0_20Change += "<li>Enabled &quot;Click All&quot; button for all customers.</li>";
     v0_20Change += "<li>Enabled addition of ask price by clicking on legend.</li>";
@@ -317,7 +342,7 @@ function changeLog() {
     v0_20Change += "<li>Added &quot;Change Log&quot; button.</li>";
     v0_20Change += "<li>Extended expiration date to 2014-06-15.</li>";
     v0_20Change += "<li>Some other minor bug fixes.</li>";
-    v0_20Change += "</ol>";
+    v0_20Change += "</ol></div>";
 
 	changeLogText += v0_70Change;
 	changeLogText += v0_60Change;
@@ -325,6 +350,15 @@ function changeLog() {
     changeLogText += v0_40Change;
     changeLogText += v0_30Change;
     changeLogText += v0_20Change;
-    var changeLogWindow = window.open("", "MsgWindow", "width=400, height=600");
+	changeLogText += "</div>";
+    var changeLogWindow = window.open("", "MsgWindow", "width=450, height=600");
+    changeLogWindow.document.write("<html><title>Change Log</title><head>"); // open tags
+    changeLogWindow.document.write("<link rel='stylesheet' type='text/css' href='styles.css'>"); // import default css
+    changeLogWindow.document.write("<link rel='stylesheet' type='text/css' href='library/jquery-ui.min.css'>"); // import JQuery UI css
+    changeLogWindow.document.write("<script type='text/javascript' src='library/jquery-1.11.0.min.js'></script>"); // import JQuery
+    changeLogWindow.document.write("<script type='text/javascript' src='library/jquery-ui.min.js'></script>"); // import JQuery UI js
+    changeLogWindow.document.write("</head><body>");
     changeLogWindow.document.write(changeLogText);
+	changeLogWindow.document.write("<script>$('.log_div').accordion({collapsible: true, heightStyle: 'content'});</script>");
+	changeLogWindow.document.write("</body></html>"); // end page
 }
