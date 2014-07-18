@@ -420,9 +420,9 @@ function scatterPlot(data) {
     // attach svg to canvas
     var svgContainer = d3.select("#data_visualization").append("svg")
 		.attr("id", "grid_svg")
-        .attr("width", width + margin.left + margin.right)
+        .attr("width", $("#data_visualization").width())
         .attr("height", height + margin.top + margin.bottom);
-	
+
 	var svg = svgContainer.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")").style("pointer-events", "all");
 
     // x-axis

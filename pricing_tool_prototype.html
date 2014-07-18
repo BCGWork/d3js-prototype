@@ -48,16 +48,17 @@
 
 <body>
 	<div class="ui-widget-header ui-corner-all">
-		<div align="center" style="padding-left:120px">
+		<div align="center" style="padding-left:200px">
 			<a href="mailto:cui.bo@bcg.com?Subject=BCG B2B Pricing Suite Bug" style="text-decoration:none">
 				<img src="logo.ico" width=50 height=50 />
-				<span class="title">B2B Pricing Suite</font></span>
+				<span class="title">B2B Pricing Suite</span>
 				<span class="subtitle"><i>by The Boston Consulting Group</i></span>
 			</a>
 			<a href="http://www.sandisk.com" style="float:right" target="_blank"><img src="client_logo.png" width=120 height=45 /></a>
 		</div>
-		<div style="text-align:right; cursor:pointer" onclick="changeLog()">v0.6.9</div>
+		<div style="text-align:right"><span style="cursor:pointer" onclick="changeLog()">v0.7</span></div>
     </div>
+	
     <div id="user_inputs" class="ui-widget-header ui-corner-all">
 		<div id="file_inputs">
 			<input id="files" class="file" type="file" name="files[]" />
@@ -71,6 +72,7 @@
 			<select id="choose_bu"></select>
 		</div>
     </div>
+	
 	<div id="control_tabs" style="width:20%; float:left; display:none">
 		<ul>
 			<li><a href="#control_panel">Control Panel</a></li>
@@ -102,6 +104,7 @@
 			<div id="tooltip_checkbox" style="width: 50%; float:right"></div>
 		</div>
 	</div>
+	
 	<div id="visualization_tabs" style="width:79%; float:left; display:none">
 		<ul>
 			<li><a href="#data_visualization" onclick="switchToGrid()">Grid Visualization</a></li>
@@ -143,9 +146,7 @@
 	</div>
 	
 	<script type="text/javascript" src="jui_style.js"></script>
-<!--
 	<script type="text/javascript" src="time_bomb.js"></script>
--->
 </body>
 
 </html>
