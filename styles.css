@@ -27,21 +27,20 @@ input.file {
 
 /* title and subtitle */
 .title {
-	margin-left:10px;
+	padding-left:10px;
 	vertical-align:12px;
 	font-family:arial;
 	text-shadow:3px 3px 10px #847e71;
 	font-size:2.9em;
 }
 .subtitle {
-	margin-left:10px;
+	padding-left:10px;
 	font-style:italic;
 	text-shadow:3px 3px 10px #847e71;
 }
 
 
-/* check box */
-/*
+/* // checkbox
 label {
 	display:inline-block;
 	cursor:default;
